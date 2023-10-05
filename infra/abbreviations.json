@@ -1,0 +1,21 @@
+{
+  "cdn": {
+    "cdn_profile": "cdnp",
+    "cdn_endpoint": "cdne"
+  },
+  "containers": {
+    "container_app": "ca",
+    "container_app_environment": "cae",
+    "container_registry": "cr"
+  },
+  "insights": {
+    "application_insights": "appi",
+    "log_analytics_workspace": "log"
+  },
+  "resources": {
+    "resource_group": "rg"
+  },
+  "security": {
+    "user_assigned_identity": "id"
+  }
+}

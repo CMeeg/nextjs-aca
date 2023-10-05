@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: next-azure
+metadata:
+  template: next-azure-aca@0.0.1-beta
+hooks:
+  preprovision:
+    shell: pwsh
+    run: ./.azure/hooks/preprovision.ps1
+  postprovision:
+    shell: pwsh
+    run: ./.azure/hooks/postprovision.ps1
+services:
+  web:
+    project: ./
+    language: js
+    host: containerapp
+    dist: .next/standalone
