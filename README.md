@@ -1,39 +1,48 @@
-# next-azure
+# nextjs-aca
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+An `azd` (Azure Developer CLI) template for getting a [Next.js](https://nextjs.org/) 13 app running on Azure Container Apps with CDN and Application Insights.
+
+The Next.js 13 app included with the template is a sample app generated with [`create-next-app`](https://nextjs.org/docs/getting-started/installation#automatic-installation), but has some additional code and components that provide:
+
+* Server-side instrumentation and logging via App Insights
+* Client-side instrumentation and tracking via App Insights
+* Serving of Next.js static assets through the CDN (with cache busting)
+* Support for a custom domain name and automatic canonical host name redirect
+* Support for environment-aware conditions (an example can be seen in `src/app/robots.ts`)
+
+Of course with this being an `azd` template you are free to replace the sample app with your own, or pick and choose what you want to keep or remove.
+
+## Quickstart
+
+The quickest way to try this `azd` template out is using [GitHub Codespaces](https://docs.github.com/en/codespaces) or in a [VS Code Dev Container](https://code.visualstudio.com/docs/devcontainers/containers):
+
+* Create a new Codespace from the `main` branch
+  * Or, clone this repo and start the Dev Container in VS Code
+* Open a PowerShell (pwsh) terminal
+* `npm i` to install dependencies
+* `npm run env:init` to create a `.env.local` file from a provided template
+* `azd auth login` and follow the prompts to sign in to your Azure account
+* `azd provision` and follow the prompts to provision the app resources in Azure
+* `azd deploy` to deploy the app to the provisioned resources
+
+The output from the `azd deploy` command includes a link to the resource group in your Azure Subscription where you can see the resources that were provisioned. A link to the Next.js app running in Azure is also included.
+
+🚀 You now have a Next.js 13 app running in Container Apps in Azure with a CDN for fast delivery of static files and Application Insights attached for monitoring!
+
+When you're done testing you can run `azd down` in the terminal and that will delete the resource group and all of the resources in it.
 
 ## Getting Started
 
-First, run the development server:
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy to Azure
-
-TODO
-
-## Run in Docker
-
-* Install Docker on your machine
-* Build your container: `docker build -t next-azure .`
-* Run your container: `docker run -p 3000:3000 next-azure`
+TODO:
+[ ] Running locally
+[ ] Dev loop
+[ ] App Insights on server and client
+[ ] Environment conditions
+[ ] CDN support
+[x] Environment variables
+[x] Pipelines
+[x] Custom domain name
+[ ] Check other azd templates to see what they have included in docs
 
 ## Environment variables
 
