@@ -13,13 +13,13 @@ RUN PWSH_VERSION="7.3.7" \
 # https://ohmyposh.dev/docs/installation/prompt
 # https://ohmyposh.dev/docs/installation/customize
 # https://ohmyposh.dev/docs/themes
-RUN JB_MONO_VERSION="2.304" \
+RUN JB_MONO_VERSION="3.0.2" \
     && PROFILE="/home/node/.config/powershell/Microsoft.PowerShell_profile.ps1" \
     && curl -s https://ohmyposh.dev/install.sh | bash -s \
     && apt install unzip \
-    && wget https://download.jetbrains.com/fonts/JetBrainsMono-${JB_MONO_VERSION}.zip \
-    && unzip JetBrainsMono-${JB_MONO_VERSION}.zip -d /usr/share/fonts/truetype/JetBrainsMono \
-    && rm JetBrainsMono-${JB_MONO_VERSION}.zip \
+    && wget https://github.com/ryanoasis/nerd-fonts/releases/download/v${JB_MONO_VERSION}/JetBrainsMono.zip \
+    && unzip JetBrainsMono.zip -d /usr/share/fonts/truetype/JetBrainsMono \
+    && rm JetBrainsMono.zip \
     && fc-cache -f -v \
     && mkdir -p "$(dirname "${PROFILE}")" && touch "${PROFILE}" \
     && echo 'oh-my-posh init pwsh --config "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/amro.omp.json" | Invoke-Expression' >> ${PROFILE}
