@@ -1,9 +1,8 @@
 # Run when commits are pushed to main branch
-# TODO: Change this back to `main` when everything is done and tested - change it in the `init` step also
 trigger:
   branches:
     include:
-    - v3
+    - main
 
 # Azure Pipelines workflow to deploy to Azure using azd
 # To configure required secrets for connecting to Azure, run `azd pipeline config --provider azdo`
@@ -17,8 +16,7 @@ variables:
   value: 'unknown'
 
 # The "production" environment is targeted when the source branch is `main`
-# TODO: Change this back to `main` when everything is done and tested - change it in the `init` step also
-- ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/v3') }}:
+- ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
   - group: production
   - name: 'env_name'
     value: 'production'

@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: next-azure
+name: nextjs-aca
 metadata:
-  template: next-azure-aca@0.0.1-beta
+  template: nextjs-aca@0.1.0
 hooks:
   preprovision:
     shell: pwsh

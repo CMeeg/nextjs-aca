@@ -2,9 +2,8 @@ on:
   workflow_dispatch:
   push:
     # Run when commits are pushed to main branch
-    # TODO: Change this back to `main` when everything is done and tested - change it in the `init` step also
     branches:
-      - v3
+      - main
 
 # GitHub Actions workflow to deploy to Azure using azd
 # To configure required secrets for connecting to Azure, run `azd pipeline config`
@@ -23,7 +22,7 @@ jobs:
         id: set_env
         run: |
           Write-Output "Running on branch $env:GITHUB_REF"
-          if ($env:GITHUB_REF -eq "refs/heads/v3") {
+          if ($env:GITHUB_REF -eq "refs/heads/main") {
             Add-Content $env:GITHUB_OUTPUT "env_name=production"
           } else {
             Add-Content $env:GITHUB_OUTPUT "env_name=unknown"

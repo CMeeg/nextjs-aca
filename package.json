@@ -1,12 +1,13 @@
 {
-  "name": "next-azure",
+  "name": "nextjs-aca",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "next dev",
+    "env:init": "pwsh ./.azure/scripts/create-env-local.ps1",
+    "lint": "next lint",
+    "start": "next start"
   },
   "dependencies": {
     "@microsoft/applicationinsights-react-js": "^17.0.0",
