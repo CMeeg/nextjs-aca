@@ -45,7 +45,7 @@ jobs:
           displayName: Show environment
 
         - pwsh: |
-            .azure/scripts/create-env-local.ps1
+            .azd/scripts/create-env-local.ps1
           displayName: Create .env.local file
 
         - pwsh: |

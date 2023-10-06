@@ -28,7 +28,7 @@ param webAppServiceIdentityName string = ''
 // See: https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
 var abbrs = loadJsonContent('./abbreviations.json')
 
-// This file is created by a `preprovision` hook - if you're seeing an error here and elsewhere because this file doesn't exist, run `.azure/scripts/create-infra-env-vars.ps1` directly or via `azd provision` to create the file
+// This file is created by a `preprovision` hook - if you're seeing an error here and elsewhere because this file doesn't exist, run `.azd/scripts/create-infra-env-vars.ps1` directly or via `azd provision` to create the file
 var envVars = loadJsonContent('./env-vars.json')
 
 var projectName = envVars.PROJECT_NAME

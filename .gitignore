@@ -1,6 +1,4 @@
-.azure/*
-!.azure/hooks/
-!.azure/scripts/
+.azure/
 
 .next/
 
@@ -11,6 +9,7 @@ node_modules/
 .DS_Store
 .env*.local
 .env.azure
+
 next-env.d.ts
 npm-debug.log*
 *.tsbuildinfo

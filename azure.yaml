@@ -6,10 +6,10 @@ metadata:
 hooks:
   preprovision:
     shell: pwsh
-    run: ./.azure/hooks/preprovision.ps1
+    run: ./.azd/hooks/preprovision.ps1
   postprovision:
     shell: pwsh
-    run: ./.azure/hooks/postprovision.ps1
+    run: ./.azd/hooks/postprovision.ps1
 services:
   web:
     project: ./
