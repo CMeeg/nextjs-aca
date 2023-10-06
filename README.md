@@ -33,7 +33,8 @@ The quickest way to try this `azd` template out is using [GitHub Codespaces](htt
 
 * [x] Running locally
 * [x] Dev loop
-* [ ] App Insights on server and client
+* [ ] Deploying to Azure with `azd` in a CI/CD pipeline
+* [x] App Insights on server and client
 * [ ] CDN support
 * [ ] Environment conditions
 * [x] Environment variables
@@ -59,7 +60,7 @@ If you do not have access to or do not want to work in Codespaces or a Dev Conta
 >
 > `npm` is used as it is the "safest" default. You should be able to switch out for the package manager of your choice, but only `npm` has been tested.
 
-✔️ Once you have everything installed you can clone this repo and then follow the same steps as in the [Quickstart](#quickstart) to get started.
+✔️ Once you have everything installed you can clone this repo and [start developing](#developing-your-app-with-this-template) or [deploy to Azure with the `azd` CLI](#deploying-to-azure-with-the-azd-cli).
 
 ## Developing your app with this template
 
@@ -73,9 +74,57 @@ You should develop your Next.js app as [you normally would](https://nextjs.org/d
 
 > Some of the file and folder naming conventions used in this template are directly influenced by `azd` so it is a good idea to be familiar with those as renaming or moving things that [`azd` has a convention for](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/make-azd-compatible?pivots=azd-create#azd-conventions) will break the `azd` commands used to provision and deploy your app.
 
-⚡ As with any Next.js app you have the option of running your app in the [Development Server](https://nextjs.org/docs/getting-started/project-structure) or the [Node.js server](https://nextjs.org/docs/app/building-your-application/deploying#nodejs-server) locally, but because this is an `azd` template you also have the option of deploying your app to Azure [via the command line](#quickstart) if you want to test in a production-like environment, and then easily pull it all back down again when you are done.
+⚡ As with any Next.js app you have the option of running your app in the [Development Server](https://nextjs.org/docs/getting-started/project-structure) or the [Node.js server](https://nextjs.org/docs/app/building-your-application/deploying#nodejs-server) locally, but because this is an `azd` template you also have the option of deploying your app to Azure [via the command line](#deploying-to-azure-with-the-azd-cli) if you want to test in a production-like environment, and then easily pull it all back down again when you are done.
 
 > This template is configured to create [`standalone` output](https://nextjs.org/docs/app/api-reference/next-config-js/output#automatically-copying-traced-files) when you run `next build`. This produces a smaller build output to keep the size of the Docker container deployed to Azure Container Apps as small as possible. However, if you are running `next build` locally this may not be desirable because you will receive a warning when you run `next start` and your app may not work as intended. You can remove `output: 'standalone'` from `next.config.js` in this situation, but it is advised to revert/not commit this change when you are done.
+
+## Deploying to Azure with the `azd` CLI
+
+To deploy your app from your Terminal with `azd` run:
+
+* (if not already signed in) `azd auth login` and follow the prompts to sign in to your Azure account
+* `azd provision` and follow the prompts to provision the infrastructure resources in Azure
+* `azd deploy` to deploy the app to the provisioned infrastructure
+
+Then when you're finished run:
+
+* `azd down` to delete the app and its infrastructure from Azure
+
+> `azd` has an `azd up` command, which the [docs describe as](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/make-azd-compatible?pivots=azd-create#update-azureyaml) *"You can run `azd up` to perform both `azd provision` and `azd deploy` in a single step"*. Running `azd up` actually seems to be the equivalent of `azd package` -> `azd provision` -> `azd deploy` though, which does not work for this template because outputs from the `azd provision` step such as the app's URL and the CDN endpoint URL are required by `next build`, which is run inside the `Dockerfile` during `azd package`. So unless the behaviour of `azd up` can be changed in future you will need to continue to run `azd provision` -> `azd deploy`.
+
+## Deploying to Azure with `azd` in a CI/CD pipeline
+
+TODO
+
+## Application Insights
+
+The template includes instrumentation and components to enable server-side and client-side instrumentation and logging via App Insights when deployed to Azure.
+
+### Server-side instrumentation and components
+
+Server-side instrumentation is implemented using the [Application Insights for Node.js (Beta)](https://github.com/microsoft/ApplicationInsights-node.js/tree/beta) package. The package is initialised via Next.js's [Instrumentation](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation) feature and leverages Next.js's support for [OpenTelemetry](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry).
+
+The template also provides a logging implementation to allow for explicit logging of errors, warnings etc in your app's server-side code (including inside server components). The logger is implemented using [`pino`](https://getpino.io/) and sends logs to Application Insights via a `pino` [transport](https://github.com/CMeeg/pino-appinsights-transport). To use the logger in your app you can `import { logger } from '@/lib/instrumentation/logger'`.
+
+> Server-side instrumentation and logging to Application Insights requires a connection string to an Application Insights resource to be provided via an environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING`. Thie environment variable is provided to the app automatically by `azd provision`.
+>
+> If the connection string is not available, for example when running in your development environment outside of `azd provision`, the instrumentation will not be initialised and the logger will fallback to using the [`pino-pretty`](https://github.com/pinojs/pino-pretty) transport to log to `console`.
+
+### Client-side instrumentation and logging
+
+Client-side instrumentation is implemented using the [Microsoft Application Insights JavaScript SDK - React Plugin](https://github.com/microsoft/applicationinsights-react-js) package. The package is initialised in a `AppInsightsProvider` server component, which is a wrapper around a client component that renders the `AppInsightsContext` component from the React Plugin. You can `import { AppInsightsProvider } from '@/components/instrumentation/AppInsightsProvider'` and place it somewhere fairly high up in the component tree, for example this template renders the component inside its [Root Layout](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts#root-layout-required).
+
+Client-side logging can be performed by using the `useAppInsightsContext` hook from within client components as described in the [documentation for the React Plugin](https://learn.microsoft.com/en-gb/azure/azure-monitor/app/javascript-framework-extensions?tabs=react#use-application-insights-with-react-context).
+
+> Client-side instrumentation and logging to Application Insights requires a connection string to an Application Insights resource to be provided via an environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING`. . Thie environment variable is provided to the app automatically by `azd provision`.
+>
+> If the connection string is not available, for example when running in your development environment outside of `azd provision`, the `AppInsightsProvider` will not render and `useAppInsightsContext` will return `undefined`.
+
+🙏 Thank you to [Jonathan Rupp](https://github.com/jorupp) who very kindly shared his implementation for client-side instrumentation in this [GitHub discussion](https://github.com/vercel/next.js/discussions/55405#discussioncomment-7118671), which was mostly reused for the implementation in this template.
+
+## Azure CDN
+
+TODO
 
 ## Environment variables
 
@@ -131,14 +180,6 @@ Exactly how the environment variables are surfaced to the build agent is slightl
 4. `azd provision` and `azd deploy` then run as they would locally (i.e. as described above), using the `env.local` file created during that pipeline run
 
 > As mentioned, the specifics of how to add environment variables depends on whether you are using [Azure DevOps](#create-a-variable-group-for-your-environment) or [GitHub Actions](#add-environment-variables).
-
-## Azure CDN
-
-TODO
-
-## Application Insights
-
-TODO
 
 ## Pipelines
 
