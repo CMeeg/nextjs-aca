@@ -31,14 +31,14 @@ The quickest way to try this `azd` template out is using [GitHub Codespaces](htt
 
 ## TODO: Docs
 
-* [✔️] Running locally
-* [ ] Dev loop
+* [x] Running locally
+* [x] Dev loop
 * [ ] App Insights on server and client
-* [ ] Environment conditions
 * [ ] CDN support
-* [✔️] Environment variables
-* [✔️] Pipelines
-* [✔️] Custom domain name
+* [ ] Environment conditions
+* [x] Environment variables
+* [x] Pipelines
+* [x] Custom domain name
 * [ ] Create architecture diagram
 * [ ] Check other azd templates to see what they have included in docs
 
@@ -60,6 +60,22 @@ If you do not have access to or do not want to work in Codespaces or a Dev Conta
 > `npm` is used as it is the "safest" default. You should be able to switch out for the package manager of your choice, but only `npm` has been tested.
 
 ✔️ Once you have everything installed you can clone this repo and then follow the same steps as in the [Quickstart](#quickstart) to get started.
+
+## Developing your app with this template
+
+You should develop your Next.js app as [you normally would](https://nextjs.org/docs/app/building-your-application) with a couple of (hopefully minor) concessions:
+
+* As and when environment variables need to be added to a `.env.local` file that the the `.env.local.template` file is updated to include a matching empty or example entry
+  * This is so that the `azd provision` and `azd deploy` hooks have context of all of the environment variables required by your app at build and at runtime
+  * See the [Environment variables](#environment-variables) section for a fuller description of why this is needed
+* To get the most out of the CDN and App Insights resources used by this template you should keep (or copy across) the relevant code and configuration assets related to these resources
+  * See the [Azure CDN](#azure-cdn) and [Application Insights](#application-insights) sections for more information
+
+> Some of the file and folder naming conventions used in this template are directly influenced by `azd` so it is a good idea to be familiar with those as renaming or moving things that [`azd` has a convention for](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/make-azd-compatible?pivots=azd-create#azd-conventions) will break the `azd` commands used to provision and deploy your app.
+
+⚡ As with any Next.js app you have the option of running your app in the [Development Server](https://nextjs.org/docs/getting-started/project-structure) or the [Node.js server](https://nextjs.org/docs/app/building-your-application/deploying#nodejs-server) locally, but because this is an `azd` template you also have the option of deploying your app to Azure [via the command line](#quickstart) if you want to test in a production-like environment, and then easily pull it all back down again when you are done.
+
+> This template is configured to create [`standalone` output](https://nextjs.org/docs/app/api-reference/next-config-js/output#automatically-copying-traced-files) when you run `next build`. This produces a smaller build output to keep the size of the Docker container deployed to Azure Container Apps as small as possible. However, if you are running `next build` locally this may not be desirable because you will receive a warning when you run `next start` and your app may not work as intended. You can remove `output: 'standalone'` from `next.config.js` in this situation, but it is advised to revert/not commit this change when you are done.
 
 ## Environment variables
 
@@ -115,6 +131,14 @@ Exactly how the environment variables are surfaced to the build agent is slightl
 4. `azd provision` and `azd deploy` then run as they would locally (i.e. as described above), using the `env.local` file created during that pipeline run
 
 > As mentioned, the specifics of how to add environment variables depends on whether you are using [Azure DevOps](#create-a-variable-group-for-your-environment) or [GitHub Actions](#add-environment-variables).
+
+## Azure CDN
+
+TODO
+
+## Application Insights
+
+TODO
 
 ## Pipelines
 
