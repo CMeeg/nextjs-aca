@@ -190,14 +190,24 @@ Exactly how the environment variables are surfaced to the build agent is slightl
 
 ## Pipelines
 
-This template includes support for running a CI/CD in GitHub Actions or Azure DevOps Pipelines. The specifics of the pipelines does differ due to the differing capabilities and behaviour of each platform, but an effort has been made to keep the two pipelines broadly in line with each other so that they are comparable.
+This template includes support for running a CI/CD pipeline in GitHub Actions or Azure DevOps Pipelines. The specifics of the pipelines does differ due to the different capabilities and behaviour of each platform, but an effort has been made to keep the two pipelines broadly in line with each other so that the steps are comparable:
+
+1. Determine the name of the target environment based on the branch ref that triggered the pipeline to run e.g. `refs/heads/main` -> `production`
+2. Load environment variables specific to the target environment in the pipeline's build context
+3. Execute `npm run env:init` to [generate a `.env.local` file](#how-the-envlocal-file-is-generated-when-running-in-a-pipeline) from the environment variables loaded into the build context
+4. Run `azd provision`
+5. Run `azd deploy`
 
 Below are some instructions for how to setup and configure the pipelines included with this template for:
 
 * [GitHub Actions](#github-actions)
 * [Azure DevOps Pipelines](#azure-devops-pipelines)
 
-> `azd` includes an `azd pipeline config` command that can be used to help initialise a pipeline on either platform. This is not recommended by this template because a) it requires creating target (non-development) environments locally, which doesn't feel "right"; and b) it creates "global" environment variables, but we recommend environment variables scoped to specific target environments.
+> `azd` includes an `azd pipeline config` command that can be used to help initialise a pipeline on either platform. This is not recommended by this template because a) it requires creating target environments locally and having access to their environment variables, which doesn't "feel right" (i.e. having access to production secrets in a development environment doesn't "feel right"); and b) it creates "global" environment variables in GitHub, but this template recommends that you scope environment variables to specific target environments.
+>
+> Hopefully in future `azd` will offer hooks into the `azd pipeline` commands that allow for the below steps to be automated, but for now they are manual steps.
+
+💡 The instructions below are written as if you are adding a `production` environment as that is assumed to be required and is catered for "out of the box" with the template, but you can add support for other environments also, for example you could maps pushes to a `canary` branch to deploy to a `uat` environment.
 
 ### GitHub Actions
 
@@ -227,11 +237,12 @@ You don't need to do anything specific to add the workflow in GitHub Actions, th
    * Go to `Certificates & secrets`
    * Select `Federated credentials` and click `Add credential`
    * Select the `GitHub Actions deploying Azure resources` scenario, and fill in the required information
-     * `Organization` - your GitHub username
-     * `Repository` - your GitHub repository name
-     * `Entity type` - `Environment`
-     * `GitHub environment name` - the environment name (`production`)
-     * `Name` - a name for the scenario (suggestion: concatenate `{Organization}-{Repository}-{GitHub environment name}`)
+     * `Organization`: your GitHub username
+     * `Repository`: your GitHub repository name
+     * `Entity type`: `Environment`
+     * `GitHub environment name`: the environment name (`production`)
+     * `Name`: a name for the scenario
+       * e.g. `{Organization}-{Repository}-{GitHub environment name}`
    * Click `Add`
 2. Give the Service principal the permissions required to deploy to your Azure Subscription
    * Go to `Subscriptions`
@@ -255,7 +266,7 @@ You don't need to do anything specific to add the workflow in GitHub Actions, th
 
 #### Add Environment variables
 
-1. Find and edit the Environment that you created in GitHub earlier
+1. Find and edit the Environment that you created in GitHub repo earlier
 2. Add Environment variables
    * `AZURE_ENV_NAME=prod`
      * This doesn't need to match the GitHub Environment name and because it is used when generating Azure resource names it's a good idea to keep it short
@@ -275,7 +286,9 @@ You don't need to do anything specific to add the workflow in GitHub Actions, th
 
 If you add additional environment variables for use in your app and want to override them in this environment then you can come back here later to add or change anything as needed.
 
-> If you add environment variables to `.env.local.template` you must also make sure you edit the `Create .env.local file` step of the `deploy` job in `.github/workflows/azure-dev.yml` to make them available as environment variabls when `npm run env:init` is executed. GitHub Actions doesn't automatically make environment variables available to scripts so they need to be added explicitly to this step (this is something you don't need to do in the AZDO pipeline, which does expose its environment variables to scripts implicitly).
+> If you add environment variables to `.env.local.template` you must also make sure you edit the `Create .env.local file` step of the `deploy` job in `.github/workflows/azure-dev.yml` to make them available as environment variables when `npm run env:init` is executed in the pipeline.
+>
+> GitHub Actions doesn't automatically make environment variables available to scripts so they need to be added explicitly to this step (this is something you don't need to do in the AZDO pipeline, which does expose its environment variables to scripts implicitly).
 
 ### Azure DevOps Pipelines
 
@@ -299,7 +312,7 @@ You need to manually create a pipeline in Azure DevOps - the presence of the `.a
 #### Setup permissions
 
 1. Create a Service connection for you Pipeline
-   * Go to `Project settings` -> `Service connections`
+   * Still in your Azure DevOps Project, go to `Project settings` -> `Service connections`
    * Click `New service connection`
      * Select `Azure Resource Manager`
      * Select `Service pincipal (automatic)`
@@ -313,12 +326,12 @@ You need to manually create a pipeline in Azure DevOps - the presence of the `.a
      * Click `Save`
 2. Give the Service connection the permissions required to deploy to your Azure Subscription
    * After your Service connection has been created, click on it to edit it
-   * Click on `Manage Service Principal`
+   * Click on `Manage Service Principal`, which will take you to the Service Principal in the Azure Portal
    * Copy the `Display name`
      * If you don't like the generated name you can go to `Branding & properties` and change the `Name`
    * Copy the Service principal's `Directory (tenant) ID` - we will need that later
-   * Go back to your Service connection in AZDO
-   * Click on `Manage service connection roles`
+   * Go back to your Service connection in Azure DevOps
+   * Click on `Manage service connection roles`, which will take you to the Subscription in the Azure Portal
    * Go to `Role assignments`
    * Assign the `Role Based Access Control Administrator` role
      * Click `Add` -> `Add role assignment`
@@ -330,11 +343,11 @@ You need to manually create a pipeline in Azure DevOps - the presence of the `.a
      * Click `Review + assign` and complete the Role assignment
    * Go to the `Overview` tab of your Subscription
    * Copy the `Subscription ID` - we will need this later
-   * Go back to your Service connection in AZDO
+   * Go back to your Service connection in Azure DevOps
 
 #### Create an Environment
 
-1. Go to `Pipelines` -> `Environments`
+1. Still in your Azure DevOps Project, go to `Pipelines` -> `Environments`
 2. Create a `production` environment
    * Add a `Description` if you want
    * For `Resource` select `None`
@@ -342,7 +355,7 @@ You need to manually create a pipeline in Azure DevOps - the presence of the `.a
 
 #### Create a Variable group for your Environment
 
-1. Go to `Pipelines` -> `Library`
+1. Still in your Azure DevOps Project, go to `Pipelines` -> `Library`
 2. Add a `Variable group` called `production`
 3. Add the following variables:
    * `AZURE_ENV_NAME=prod`
@@ -361,51 +374,51 @@ You need to manually create a pipeline in Azure DevOps - the presence of the `.a
 
 If you add additional environment variables for use in your app and want to override them in this environment then you can come back here later to add or change anything as needed.
 
-> The first time you run the pipeline it may ask you to permit access to the `production` Environment and Variable group, which you should allow.
+> The first time you run the pipeline it will ask you to permit access to the `production` Environment and Variable group that you just created, which you should allow for the pipeline to run succesfully.
 
 ## Adding a custom domain name
 
-To add a custom domain name to your container app you will need to add an environment variable named `SERVICE_WEB_CUSTOM_DOMAIN_NAME`.
+To add a custom domain name to your Container App you will need to add an environment variable named `SERVICE_WEB_CUSTOM_DOMAIN_NAME`:
 
-For example, to set the domain name for the container app to `www.example.com` you would add an environment variable `SERVICE_WEB_CUSTOM_DOMAIN_NAME=www.example.com`:
+> For example, to set the domain name for the container app to `www.example.com` you would add an environment variable `SERVICE_WEB_CUSTOM_DOMAIN_NAME=www.example.com`.
 
-* In your local dev environment - to your `.env.local` file
-* In GitHub Actions - as an [Environment variable](#add-environment-variables) in the target environment (e.g. `production`)
-* In Azure DevOps - as a [Variable in the Variable group](#create-a-variable-group-for-your-environment) for the target environment (e.g. `production`)
+* In your local dev environment: to your `.env.local` file
+* In GitHub Actions: as an [Environment variable](#add-environment-variables) in the target Environment (e.g. `production`)
+* In Azure DevOps: as a [Variable in the Variable group](#create-a-variable-group-for-your-environment) for the target Environment (e.g. `production`)
 
-When you add a custom domain name a redirect rule is automatically added so that if you attempt to navigate to the default domain of the Container App there will be a permanent redirect to the custom domain name - this redirect is configured in `next.config.js`.
+💡 When you add a custom domain name a redirect rule is automatically added so that if you attempt to navigate to the default domain of the Container App there will be a permanent redirect to the custom domain name - this redirect is configured in `next.config.js`.
 
 ### Add a free managed certificate for your custom domain
 
-When you add a custom domain name to your container app (as described above) there is no SSL certificate provided, but Azure provides a facility to add a free managed SSL certificate.
+When you add a custom domain name to your Container App (as described above) there is no SSL certificate provided by default, but Azure provides a facility to add a free managed SSL certificate:
 
-To add the managed certificate to your container app:
+1. Create the certificate
+   * Sign in to the [Azure Portal](https://portal.azure.com)
+   * Go to the your Container Apps Environment resource
+   * Go to `Certificates` -> `Managed certificate`
+   * Click `Add certificate`
+     * Select your `Custom domain` name
+     * Choose the appropriate `Hostname record type`
+     * Follow the instructions under `Domain name validation`
+       * If you need further instruction there is [official documentation](https://learn.microsoft.com/en-us/azure/container-apps/custom-domains-managed-certificates?pivots=azure-portal#add-a-custom-domain-and-managed-certificate)
+     * `Validate` the custom domain name
+     * `Add` the certificate
+   * Azure will now provision the certificate
+2. Get the `Certificate ID`
+   * Wait for the `Certificate Status` to become `Suceeded`
+   * The `Certificate ID` is not exposed in a convenient place in the Azure Portal, but you can work it out from the information provided:
+     * Copy the `Certificate Name`
+     * Go to `Overview` -> `JSON View`
+     * Copy the `Resource ID`
+     * Create the `Certificate ID` using the pattern:
+       * `{Resource ID}/managedCertificates/{Certificate Name}`
+3. Expose the `Certificate ID` to your `main.bicep` file through an environment variable
+   * Repeat the process you followed to [add the custom domain name as an environment variable](#adding-a-custom-domain-name), but `SERVICE_WEB_CUSTOM_DOMAIN_CERT_ID={Certificate ID}`
 
-1. Sign in to the [Azure Portal](https://portal.azure.com)
-2. Go to the Container Apps Environment resource that the Container App you added the custom domain name to is located under
-3. Go to `Certificates` -> `Managed certificate`
-4. Click `Add certificate`
-   * Select your `Custom domain` name
-   * Choose the appropriate `Hostname record type`
-   * Follow the instructions under `Domain name validation`
-     * If you need further instruction there is [official documentation](https://learn.microsoft.com/en-us/azure/container-apps/custom-domains-managed-certificates?pivots=azure-portal#add-a-custom-domain-and-managed-certificate)
-   * `Validate` the custom domain name
-   * `Add` the certificate
+⚡ The next time that you trigger `azd provision` - either by running locally or through your pipeline - the certificate will be bound to the custom domain name that you added to your Container App.
 
-Azure will now provision the certificate. When the `Certificate Status` is `Suceeded` you will need its ID:
-
-1. Copy the `Certificate Name`
-2. Go to `Overview` -> `JSON View`
-3. Copy the `Resource ID`
-4. Create the `Certificate ID` using the pattern:
-   * `{Resource ID}/managedCertificates/{Certificate Name}`
-
-Next you will need to add an environment variable named `SERVICE_WEB_CUSTOM_DOMAIN_CERT_ID` set to the value of your `Certificate ID`. Follow the same process you followed when adding your custom domain name to add this environment variable so that it sits alongside the custom domain name.
-
-Finally you will need to trigger `azd provision` again - either by running locally or through your pipeline - and verify that the certificate binding has been added to your Container App.
-
-To verify you can see what Container Apps are using your managed certificates from the Container Apps Environment resource in Azure Portal or you locate the Container App resource in the Azure Portal and check under `Custom domains`.
-
-> It is possible to automate the creation of managed certificates through Bicep, which would be preferable to the above manual process, but there are a few ["chicken and egg" issues](https://johnnyreilly.com/azure-container-apps-bicep-managed-certificates-custom-domains) that make automation difficult at the moment. In the context of this template it was decided that a manual solution, though not preferable, is the most pragmatic solution.
+> It is possible to automate the creation of managed certificates through Bicep, which would be preferable to the above manual process, but there are a few ["chicken and egg" issues](https://johnnyreilly.com/azure-container-apps-bicep-managed-certificates-custom-domains) that make automation difficult at the moment. In the context of this template it was decided that a manual solution is the most pragmatic solution.
 >
-> The situation with managed certificates is discussed on this [GitHub issue](https://github.com/microsoft/azure-container-apps/issues/607) so hopefully there will be better support for automation in the future - one to keep an eye on! If a manual approach is not scaleable for your needs have a read through the links provided for some ideas of how others have approached an automated solution.
+> The situation with managed certificates is discussed on this [GitHub issue](https://github.com/microsoft/azure-container-apps/issues/607) so hopefully there will be better support for automation in the future - one to keep an eye on!
+>
+> If a manual approach is not scaleable for your needs then have a read through the links provided above for some ideas of how others have approached an automated solution.
