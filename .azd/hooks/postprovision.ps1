@@ -24,7 +24,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Before we can build the app we need to merge the local env file (if one exists) with the azd env file as it contains values required for the build to succeed
 $envLocal = Join-Path $scriptDir "../../.env.local"
-$envAzd = Join-Path $scriptDir "../${env:AZURE_ENV_NAME}/.env"
+$envAzd = Join-Path $scriptDir "../../.azure/${env:AZURE_ENV_NAME}/.env"
 
 # The result will be output to this location and the Dockerfile will copy and rename it to .env.local during the build step
 $envAzure = Join-Path $scriptDir "../../.env.azure"
