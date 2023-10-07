@@ -1,5 +1,3 @@
-import 'server-only'
-
 const environment = {
   development: 'development',
   production: 'production'
@@ -20,8 +18,7 @@ const environmentAlias: Array<{ environment: Environment; aliases: string[] }> =
   ]
 
 const appEnvironment =
-  process.env.APP_ENV ||
-  process.env.NODE_ENV ||
+  process.env.NEXT_PUBLIC_APP_ENV ||
   (environment.development satisfies Environment)
 
 const currentEnvironment = environmentAlias.reduce<Environment>(

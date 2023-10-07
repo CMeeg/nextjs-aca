@@ -167,14 +167,6 @@ module webAppServiceContainerApp './containers/container-app.bicep' = {
     certificateId: stringOrDefault(envVars.SERVICE_WEB_CUSTOM_DOMAIN_CERT_ID, '')
     env: [
       {
-        name: 'APP_ENV'
-        value: environmentName
-      }
-      {
-        name: 'BASE_URL'
-        value: webAppServiceUri
-      }
-      {
         name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
         value: appInsights.outputs.connectionString
       }
@@ -183,8 +175,16 @@ module webAppServiceContainerApp './containers/container-app.bicep' = {
         value: stringOrDefault(envVars.NEXT_COMPRESS, 'false')
       }
       {
+        name: 'NEXT_PUBLIC_APP_ENV'
+        value: environmentName
+      }
+      {
         name: 'NEXT_PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING'
         value: appInsights.outputs.connectionString
+      }
+      {
+        name: 'NEXT_PUBLIC_BASE_URL'
+        value: webAppServiceUri
       }
       {
         name: 'NEXT_PUBLIC_BUILD_ID'
@@ -229,10 +229,10 @@ output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.logi
 output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 // Web app outputs
-output APP_ENV string = environmentName
-output BASE_URL string = webAppServiceUri
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsights.outputs.connectionString
+output NEXT_PUBLIC_APP_ENV string = environmentName
 output NEXT_PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsights.outputs.connectionString
+output NEXT_PUBLIC_BASE_URL string = webAppServiceUri
 output NEXT_PUBLIC_BUILD_ID string = buildId
 output NEXT_PUBLIC_CDN_HOSTNAME string = webAppServiceCdn.outputs.endpointHostName
 output NEXT_PUBLIC_CDN_URL string = webAppServiceCdn.outputs.endpointUri
