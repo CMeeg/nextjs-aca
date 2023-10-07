@@ -1,6 +1,7 @@
 function Remove-Quotes {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
         [string]$value,
         [string]$quoteChar = '"'
     )
@@ -14,7 +15,7 @@ function Remove-Quotes {
 
 function Read-EnvVars {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$path
     )
 
@@ -32,7 +33,7 @@ function Read-EnvVars {
         $key, $value = $_.Name, $_.Value
 
         if (($null -eq $value) -or ($value -eq "")) {
-            $envVars[$key] = ""
+            $envVars[$key] = $null
         } else {
             $value = Remove-Quotes -value $value -quoteChar '"'
             $value = Remove-Quotes -value $value -quoteChar "'"
@@ -42,6 +43,38 @@ function Read-EnvVars {
     }
 
     return $envVars
+}
+
+function Merge-Objects {
+    param(
+        [Parameter(Mandatory = $true)]
+        $base,
+        [Parameter(Mandatory = $true)]
+        $with
+    )
+
+    $merged = @{}
+    $base.GetEnumerator() | ForEach-Object { $merged[$_.Key] = $_.Value }
+
+    $with.GetEnumerator() | ForEach-Object {
+        $withValue = $_.Value
+
+        if ($merged.ContainsKey($_.Key)) {
+            $baseValue = $merged[$_.Key]
+
+            if ($null -eq $withValue -and $null -ne $baseValue) {
+                # Keep the base value
+                $merged[$_.Key] = $baseValue
+            } else {
+                # Overwrite the base value
+                $merged[$_.Key] = $null -eq $withValue ? "" : $withValue
+            }
+        } else {
+            $merged[$_.Key] = $null -eq $withValue ? "" : $withValue
+        }
+    }
+
+    return $merged
 }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -59,11 +92,11 @@ $envLocal = Read-EnvVars -path $envLocalPath
 
 # Merge `.env.production` and `.env.local` into `.env` (duplicate keys will be overwritten)
 
-$env += $envProduction
-$env += $envLocal
+$envVars = Merge-Objects -base $env -with $envProduction
+$envVars = Merge-Objects -base $envVars -with $envLocal
 
 # Produce a `env-vars.json` file that can be used by the infra scripts
 
 $outputPath = Join-Path $scriptDir "../../infra/env-vars.json"
 
-$env | ConvertTo-Json | Out-File -FilePath $outputPath -Encoding utf8
+$envVars | ConvertTo-Json | Out-File -FilePath $outputPath -Encoding utf8

@@ -204,7 +204,7 @@ module webAppServiceContainerApp './containers/container-app.bicep' = {
       }
       {
         name: 'SERVICE_WEB_CUSTOM_DOMAIN_NAME'
-        value: stringOrDefault(envVars.SERVICE_WEB_CUSTOM_DOMAIN_NAME, '')
+        value: webAppServiceCustomDomainName
       }
       {
         name: 'SERVICE_WEB_MIN_LOG_LEVEL'

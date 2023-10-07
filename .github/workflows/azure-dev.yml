@@ -91,11 +91,13 @@ jobs:
         run: npm run env:init
         shell: pwsh
         env:
+          SERVICE_WEB_MIN_LOG_LEVEL: ${{ vars.SERVICE_WEB_MIN_LOG_LEVEL }}
           SERVICE_WEB_CONTAINER_CPU_CORE_COUNT: ${{ vars.SERVICE_WEB_CONTAINER_CPU_CORE_COUNT }}
           SERVICE_WEB_CONTAINER_MEMORY: ${{ vars.SERVICE_WEB_CONTAINER_MEMORY }}
           SERVICE_WEB_CONTAINER_MIN_REPLICAS: ${{ vars.SERVICE_WEB_CONTAINER_MIN_REPLICAS }}
           SERVICE_WEB_CONTAINER_MAX_REPLICAS: ${{ vars.SERVICE_WEB_CONTAINER_MAX_REPLICAS }}
           SERVICE_WEB_CUSTOM_DOMAIN_NAME: ${{ vars.SERVICE_WEB_CUSTOM_DOMAIN_NAME }}
+          SERVICE_WEB_CUSTOM_DOMAIN_CERT_ID: ${{ vars.SERVICE_WEB_CUSTOM_DOMAIN_CERT_ID }}
 
       - name: Provision Infrastructure
         run: azd provision --no-prompt
