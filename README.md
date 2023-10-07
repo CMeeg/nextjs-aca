@@ -469,3 +469,27 @@ When you add a custom domain name to your Container App (as described above) the
 > The situation with managed certificates is discussed on this [GitHub issue](https://github.com/microsoft/azure-container-apps/issues/607) so hopefully there will be better support for automation in the future - one to keep an eye on!
 >
 > If a manual approach is not scaleable for your needs then have a read through the links provided above for some ideas of how others have approached an automated solution.
+
+## Application architecture
+
+This template uses the following Azure resources:
+
+* [Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/overview) to host the Next.js app
+* [Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview?tabs=net) for monitoring and logging
+* [Azure CDN](https://learn.microsoft.com/en-us/azure/cdn/cdn-overview) for efficient serving of static application assets
+
+Here's a high level architecture diagram that illustrates these components. Notice that these are all contained within a single [resource group](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-portal) that will be created for you when you create the resources.
+
+!["Application architecture diagram"](docs/assets/nextjs-aca-architecture.png)
+
+### Cost of provisioning and deploying this template
+
+This template provisions resources to an Azure subscription that you will select upon provisioning them. Refer to the [Pricing calculator for Microsoft Azure](https://azure.microsoft.com/pricing/calculator/) to estimate the cost you might incur when this template is running on Azure and, if needed, update the included Azure resource definitions found in `infra/main.bicep` to suit your needs.
+
+### Security
+
+#### Managed Identity
+
+This template creates a [Managed Identity](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview) for your app inside your Azure Active Directory tenant. It is used to permit the Container App to pull images from the Container Registry.
+
+To view your managed identity in the Azure Portal follow these [steps](https://learn.microsoft.com/en-gb/azure/active-directory/managed-identities-azure-resources/how-to-view-managed-identity-service-principal-portal).
