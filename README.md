@@ -4,10 +4,10 @@ An `azd` ([Azure Developer CLI](https://learn.microsoft.com/en-us/azure/develope
 
 The Next.js 13 app included with the template has been generated with [`create-next-app`](https://nextjs.org/docs/getting-started/installation#automatic-installation) and has some additional code and components specific to this template that provide:
 
-* Server-side and client-side instrumentation and logging via App Insights
-* Serving of Next.js static assets through an Azure CDN (with cache busting)
-* Support for custom domain names and automatic canonical host name redirect
-* Support for checking the current environment at runtime
+* [Server-side and client-side instrumentation and logging via App Insights](#application-insights)
+* [Serving of Next.js static assets through an Azure CDN (with cache busting)](#azure-cdn)
+* [Support for custom domain names and automatic canonical host name redirect](#adding-a-custom-domain-name)
+* [Support for checking the current environment at runtime](#checking-the-current-environment-at-runtime)
 
 Of course with this being an `azd` template you are free to build on top of the sample app, replace the sample app with your own, or cherry-pick what you want to keep or remove.
 
@@ -15,33 +15,33 @@ Of course with this being an `azd` template you are free to build on top of the 
 
 The quickest way to try this `azd` template out is using [GitHub Codespaces](https://docs.github.com/en/codespaces) or in a [VS Code Dev Container](https://code.visualstudio.com/docs/devcontainers/containers):
 
-* Create a new Codespace from the `main` branch or clone this repo and start the included Dev Container in VS Code
-* Open a Terminal
-* `npm i` to install dependencies
-* `npm run env:init` to create a `.env.local` file from the provided template
-* `azd auth login` and follow the prompts to sign in to your Azure account
-* `azd provision` and follow the prompts to provision the infrastructure resources in Azure
-* `azd deploy` to deploy the app to the provisioned infrastructure
+[![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=brightgreen&logo=github)](https://codespaces.new/CMeeg/nextjs-aca)
+[![Open in Dev Container](https://img.shields.io/static/v1?style=for-the-badge&label=Dev+Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/CMeeg/nextjs-aca)
+
+Then from a Terminal:
+
+```bash
+# install dependencies
+npm i
+
+# create a `.env.local` file from the provided template
+npm run env:init
+
+# follow the prompts to sign in to your Azure account
+azd auth login
+
+# follow the prompts to provision the infrastructure resources in Azure
+azd provision
+
+# deploy the app to the provisioned infrastructure
+azd deploy
+```
 
 > The output from the `azd deploy` command includes a link to the Resource Group in your Azure Subscription where you can see the provisioned infrastructure resources. A link to the Next.js app running in Azure is also included so you can quickly navigate to your Next.js app that is now hosted in Azure.
 
 🚀 You now have a Next.js 13 app running in Container Apps in Azure with a CDN for fast delivery of static files and Application Insights attached for monitoring!
 
 💥 When you're done testing you can run `azd down` in the terminal and that will delete the Resource Group and all of the resources in it.
-
-## TODO: Docs
-
-* [x] Running locally
-* [x] Dev loop
-* [ ] Deploying to Azure with `azd` in a CI/CD pipeline
-* [x] App Insights on server and client
-* [ ] CDN support
-* [ ] Environment conditions
-* [x] Environment variables
-* [x] Pipelines
-* [x] Custom domain name
-* [ ] Create architecture diagram
-* [ ] Check other azd templates to see what they have included in docs
 
 ## Setting up locally
 
@@ -82,25 +82,38 @@ You should develop your Next.js app as [you normally would](https://nextjs.org/d
 
 To deploy your app from your Terminal with `azd` run:
 
-* `npm i` to install dependencies
-  * *if you have not already done so*
-* `azd auth login` and follow the prompts to sign in to your Azure account
-  * *if you are not already signed in*
-* `npm run env:init` to create a `.env.local` file from the provided template
-  * *if you don't already have a `.env.local` file*
-  * *this will be a no-op if you have*
-* `azd provision` and follow the prompts to provision the infrastructure resources in Azure
-* `azd deploy` to deploy the app to the provisioned infrastructure
+```bash
+# install dependencies (if you have not already done so)
+npm i
+
+# follow the prompts to sign in to your Azure account (if you are not already signed in)
+azd auth login
+
+# create a `.env.local` file from the provided template (if you don't already have a `.env.local` file - this will be a no-op if you have)
+npm run env:init
+
+# follow the prompts to provision the infrastructure resources in Azure
+azd provision
+
+# deploy the app to the provisioned infrastructure
+azd deploy
+```
 
 Then when you're finished with the deployment run:
 
-* `azd down` to delete the app and its infrastructure from Azure
+```bash
+# delete the app and its infrastructure from Azure
+azd down
+```
 
 > `azd` has an `azd up` command, which the [docs describe as](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/make-azd-compatible?pivots=azd-create#update-azureyaml) *"You can run `azd up` to perform both `azd provision` and `azd deploy` in a single step"*. Running `azd up` actually seems to be the equivalent of `azd package` -> `azd provision` -> `azd deploy` though, which does not work for this template because outputs from the `azd provision` step such as the app's URL and the CDN endpoint URL are required by `next build`, which is run inside the `Dockerfile` during `azd package`. So unless the behaviour of `azd up` can be changed in future you will need to continue to run `azd provision` -> `azd deploy`.
 
 ## Deploying to Azure with `azd` in a CI/CD pipeline
 
-TODO
+This template supports automated provisioning and deployment of your application and its infrastructure via a CI/CD pipeline running in GitHub Actions or Azure DevOps via the same `azd` process that you can run locally:
+
+* Please refer to the [Environment variables](#how-the-envlocal-file-is-generated-when-running-in-a-pipeline) section of this document to read up on how environment variables are catered for inside CI/CD pipelines
+* Please refer to the [Pipelines](#pipelines) section of this document for information on how to setup a CI/CD pipeline on either of the supported platforms
 
 ## Application Insights
 
@@ -112,7 +125,9 @@ Server-side instrumentation is implemented using the [Application Insights for N
 
 The template also provides a logging implementation to allow for explicit logging of errors, warnings etc in your app's server-side code (including inside server components). The logger is implemented using [`pino`](https://getpino.io/) and sends logs to Application Insights via a `pino` [transport](https://github.com/CMeeg/pino-appinsights-transport). To use the logger in your app you can `import { logger } from '@/lib/instrumentation/logger'`.
 
-> Server-side instrumentation and logging to Application Insights requires a connection string to an Application Insights resource to be provided via an environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING`. Thie environment variable is provided to the app automatically by `azd provision`.
+💡 To prevent runtime errors the `applicationinsights` and `pino` packages are opted-out of Next.js's bundling process via [`serverComponentsExternalPackages`](https://nextjs.org/docs/app/api-reference/next-config-js/serverComponentsExternalPackages).
+
+> Server-side instrumentation and logging to Application Insights requires a connection string to an Application Insights resource to be provided via the environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING`. This environment variable is provided to the app automatically by `azd provision`.
 >
 > If the connection string is not available, for example when running in your development environment outside of `azd provision`, the instrumentation will not be initialised and the logger will fallback to using the [`pino-pretty`](https://github.com/pinojs/pino-pretty) transport to log to `console`.
 
@@ -122,7 +137,7 @@ Client-side instrumentation is implemented using the [Microsoft Application Insi
 
 Client-side logging can be performed by using the `useAppInsightsContext` hook from within client components as described in the [documentation for the React Plugin](https://learn.microsoft.com/en-gb/azure/azure-monitor/app/javascript-framework-extensions?tabs=react#use-application-insights-with-react-context).
 
-> Client-side instrumentation and logging to Application Insights requires a connection string to an Application Insights resource to be provided via an environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING`. . Thie environment variable is provided to the app automatically by `azd provision`.
+> Client-side instrumentation and logging to Application Insights requires a connection string to an Application Insights resource to be provided via the environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING`. This environment variable is provided to the app automatically by `azd provision`.
 >
 > If the connection string is not available, for example when running in your development environment outside of `azd provision`, the `AppInsightsProvider` will not render and `useAppInsightsContext` will return `undefined`.
 
@@ -130,7 +145,39 @@ Client-side logging can be performed by using the `useAppInsightsContext` hook f
 
 ## Azure CDN
 
-TODO
+An [Azure CDN endpoint](https://learn.microsoft.com/en-us/azure/cdn/cdn-create-endpoint-how-to) is used to serve Next.js's static assets via the [`assetPrefix`](https://nextjs.org/docs/app/api-reference/next-config-js/assetPrefix) configuration option.
+
+The static assets from the Next.js build output and [`public` folder](https://nextjs.org/docs/getting-started/installation#the-public-folder-optional) are included in the Docker image that is created during the `azd deploy` step and deployed to your Container App.
+
+The CDN endpoint is configured to work in "origin pull" mode, meaning the first request made to the CDN for a static asset will proxy through to the Container App, but the response will be cached on the CDN for subsequent requests.
+
+💡 The template will also by default set Next.js's [`compress`](https://nextjs.org/docs/app/api-reference/next-config-js/compress) configuration option to `false` because the CDN will provide compression; and the [`remotePatterns`](https://nextjs.org/docs/app/api-reference/components/image#remotepatterns) configuration option is used to allow CDN URLs to be used by the Next.js's `<Image>` component.
+
+The template also includes a function that allows you to generate a CDN URL from a relative path if you want to direct certain requests through the CDN, for example images in the `public` folder. To use the function you can `import { getCdnUrl } from '@/lib/url'`.
+
+💡 The `getCdnUrl` function uses a [`buildId`](https://nextjs.org/docs/app/api-reference/next-config-js/generateBuildId) when constructing the URL so that the URLs will change when you deploy a new version of your app, which is provided as a "cache busting" strategy.
+
+> The CDN features described above require the presence of the environment variables `NEXT_PUBLIC_CDN_URL`, `NEXT_PUBLIC_CDN_HOSTNAME`, `NEXT_COMPRESS` and `NEXT_PUBLIC_BUILD_ID`. These are all provided to the app automatically with the exception of `NEXT_COMPRESS`, which is provided by `.env.production`.
+>
+> If these environment variables are not provided, for example when running in your development environment outside of `azd provision`, the `assetPrefix`, `remotePatterns` and `buildId` will not be set, and the `getCdnUrl` function will return the relative path that was provided as input.
+
+## Checking the current environment at runtime
+
+The template includes functions for checking the environment that the application is currently running in. You can `import { environment, currentEnvironment } from '@/lib/environment'` and then add conditional logic where required, for example:
+
+```javascript
+if (currentEnvironment === environment.production) {
+  // Do production stuff
+} else {
+  // Do non-production stuff
+}
+```
+
+💡 If you want to change the environment names or add support for additional environments you can edit the environments in `src/lib/environment.ts`.
+
+> `currentEnvironment` is set using an environment variable `NEXT_PUBLIC_APP_ENV`. This is provided automatically by `azd provision` or by `.env.development` when running the development server.
+>
+> If the environment variable is not set for some reason the default value for `currentEnvironment` is `environment.development`.
 
 ## Environment variables
 
@@ -207,7 +254,7 @@ Below are some instructions for how to setup and configure the pipelines include
 >
 > Hopefully in future `azd` will offer hooks into the `azd pipeline` commands that allow for the below steps to be automated, but for now they are manual steps.
 
-💡 The instructions below are written as if you are adding a `production` environment as that is assumed to be required and is catered for "out of the box" with the template, but you can add support for other environments also, for example you could maps pushes to a `canary` branch to deploy to a `uat` environment.
+💡 The instructions below are written as if you are adding a `production` environment as that is assumed to be required and is catered for "out of the box" with the template, but you can add support for other environments also. For example you could map pipeline runs triggered by a push to a `canary` branch on your repo to a `uat` target environment.
 
 ### GitHub Actions
 
@@ -284,7 +331,7 @@ You don't need to do anything specific to add the workflow in GitHub Actions, th
 3. If you want to add additional variables (e.g. those found in the `.env.local.template` file) then you can continue to do so e.g. `SERVICE_WEB_CONTAINER_MAX_REPLICAS=5`
    * If you don't add them then they will fallback to any default value set in the app or in the `main.bicep` file
 
-If you add additional environment variables for use in your app and want to override them in this environment then you can come back here later to add or change anything as needed.
+💡 If you add additional environment variables for use in your app and want to override them in this environment then you can come back here later to add or change anything as needed.
 
 > If you add environment variables to `.env.local.template` you must also make sure you edit the `Create .env.local file` step of the `deploy` job in `.github/workflows/azure-dev.yml` to make them available as environment variables when `npm run env:init` is executed in the pipeline.
 >
@@ -292,7 +339,7 @@ If you add additional environment variables for use in your app and want to over
 
 ### Azure DevOps Pipelines
 
-You need to manually create a pipeline in Azure DevOps - the presence of the `.azdo/pipelines/azure-dev.yml` file is not enough - you will need to:
+You need to manually create a pipeline in Azure DevOps - the presence of the `.azdo/pipelines/azure-dev.yml` file is not enough by itself - you will need to:
 
 1. [Create the Pipeline](#create-the-pipeline)
 2. [Setup permissions](#setup-permissions) to allow the Pipeline to create resources in your Azure subscription
@@ -372,7 +419,7 @@ You need to manually create a pipeline in Azure DevOps - the presence of the `.a
 4. If you want to add additional variables (e.g. those found in the `.env.local.template` file) then you can continue to do so e.g. `SERVICE_WEB_CONTAINER_MAX_REPLICAS=5`
    * If you don't add them then they will fallback to any default value set in the app or in the `main.bicep` file
 
-If you add additional environment variables for use in your app and want to override them in this environment then you can come back here later to add or change anything as needed.
+💡 If you add additional environment variables for use in your app and want to override them in this environment then you can come back here later to add or change anything as needed.
 
 > The first time you run the pipeline it will ask you to permit access to the `production` Environment and Variable group that you just created, which you should allow for the pipeline to run succesfully.
 
