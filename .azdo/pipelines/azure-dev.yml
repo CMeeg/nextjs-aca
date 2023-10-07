@@ -45,7 +45,7 @@ jobs:
           displayName: Show environment
 
         - pwsh: |
-            .azd/scripts/create-env-local.ps1
+            npm run env:init
           displayName: Create .env.local file
 
         - pwsh: |

@@ -82,11 +82,17 @@ You should develop your Next.js app as [you normally would](https://nextjs.org/d
 
 To deploy your app from your Terminal with `azd` run:
 
-* (if not already signed in) `azd auth login` and follow the prompts to sign in to your Azure account
+* `npm i` to install dependencies
+  * *if you have not already done so*
+* `azd auth login` and follow the prompts to sign in to your Azure account
+  * *if you are not already signed in*
+* `npm run env:init` to create a `.env.local` file from the provided template
+  * *if you don't already have a `.env.local` file*
+  * *this will be a no-op if you have*
 * `azd provision` and follow the prompts to provision the infrastructure resources in Azure
 * `azd deploy` to deploy the app to the provisioned infrastructure
 
-Then when you're finished run:
+Then when you're finished with the deployment run:
 
 * `azd down` to delete the app and its infrastructure from Azure
 
@@ -130,36 +136,35 @@ TODO
 
 When developing your app you should use environment variables as per the [Next documentation](https://nextjs.org/docs/app/building-your-application/configuring/environment-variables):
 
-* Set defaults for all builds and environments in `.env`
+* Use `.env` for default vars for all builds and environments
 * Use `.env.development` for default development build (i.e. `next dev`) vars
 * Use `.env.production` for default production build (i.e. `next build`) vars
 * Use `.env.local` for secrets, environment-specific values, or overrides of development or production build defaults set in any of the other files above
-  * Unlike the other env files, this file should never be committed to your repo
 
-> In addition to the above a `.env.local.template` file is provided as a guide for what environment variables can be set in `.env.local`. This template file is also [used in CI](#how-the-envlocal-file-is-generated-when-running-in-a-pipeline) to generate a `env.local` file for the target environment. It is important to keep this file updated if you add additional environment variables to your app.
+> `.env.local` should never be committed to your repo, but this repo includes a `.env.local.template` file that should be maintained as an example of what environment variables your app can support or is expecting in `.env.local`.
+>
+> The `.env.local.template` file is also [used in CI/CD pipelines](#how-the-envlocal-file-is-generated-when-running-in-a-pipeline) to generate a `env.local` file for the target environment. It is therefore important to keep this file updated as and when you add additional environment variables to your app.
 
 ### How `azd` uses environment variables in this template
 
 When running `azd provision`:
 
-1. A `preprovision` hook runs the `.azd/hooks/preprovision.ps1` script, which runs the `.azd/scripts/create-infra-env-vars.ps1` script to
-  * Read vars from `.env`, `.env.production` and `.env.local` (if they exist)
-  * Merge the contents of the files into a single object
-    * If there are matching keys from an earlier file found in a later file (in the order that they are read) the value from the later file will override the earlier value
-  * Write the result to the `infra/env-vars.json` file as key value pairs
-    * As this file is generated and it may contain secret or sensitive values from `.env.local` it should not be committed to your repo
-    * Values are always of type `string`
-2. `azd` runs the `main.bicep` file, which loads the `infra/env-vars.json` file created by the `preprovision` hook into a variable named `envVars` to be used during provisioning of the infrastructure
-  * N.B. If the `main.bicep` file is expecting a key to be present in the `infra/env-vars.json` file, but that key is not present in any of your `.env*` files then it will be missing and the bicep deployment will error
-  * The `main.bicep` file sets environment variables that are required at runtime on the container app so if you need to add additional environment variables you should first add them to the appropriate `.env*` file (as you would normally) and then they will also be available in `main.bicep` through the the `infra/env-vars.json` file when provisioning your infrastructure
-  * For example, if I added an environment variable `MY_VAR=value` to the `.env` file to use in my app and wanted to make sure this was available through the container app environment variables when deployed to Azure I would:
-    * Run `.azd/scripts/create-infra-env-vars.ps1` to generate the `infra/env-vars.json` file including the new environment variable I just added to `.env`
-    * Edit `main.bicep` to add the environment variable under the `webAppServiceContainerApp` module definition (there are existing examples of this already in there you can take a look at)
-  * If it's possible that the environment variable could have no value there are some helper functions in `main.bicep` to make it easier to fallback to a default value: `stringOrDefault`, `intOrDefault`, `boolOrDefault`
+1. A `preprovision` hook runs the `.azd/hooks/preprovision.ps1` script
+   * The `.azd/scripts/create-infra-env-vars.ps1` script runs
+   * The entries from the `.env`, `.env.production` and `.env.local` files (if they exist) are read and merged together (matching entries from the later files override entries from earlier files)
+   * The merged entries are written to a `infra/env-vars.json` file as key value pairs (values are always of type `string`)
+2. `azd` runs the `main.bicep` file
+   * The `infra/env-vars.json` file created by the `preprovision` hook is loaded into a variable named `envVars` to be used during provisioning of the infrastructure
+   * The environment variables exposed via `envVars` can be used to set properties of the infratructure resources defined in the `main.bicep` script such as min/max scale replicas, custom domain name, and to pass environment variables through to the Container App that are required at runtime
 3. `azd` writes any `output`(s) from the `main.bicep` file to `.azure/{AZURE_ENV_NAME}/.env`
-  * This is standard behaviour of `azd provision` and not specific to this template
-4. A `postprovision` hooks runs the `.azd/hooks/postprovision.ps1` script to
-  * Merge the contents of the `.azure/{AZURE_ENV_NAME}/.env` file with the `.env.local` file (if one exists) and write the result to a `.env.azure` file
+   * This is standard behaviour of `azd provision` and not specific to this template
+4. A `postprovision` hooks runs the `.azd/hooks/postprovision.ps1` script
+   * The contents of the `.azure/{AZURE_ENV_NAME}/.env` file are merged with the `.env.local` file (if one exists) and the results are written to a `.env.azure` file
+   * The `.env.azure` file will be used by `azd deploy`
+
+> The `main.bicep` script will error if it is expecting a key to be present in your `infra/env-vars.json` file, but it is missing. This is why you must keep your [environment variables](#environment-variables) updated.
+>
+> The `infra/env-vars.json` and `.env.azure` files should not be committed to your repo as they may contain secret or sensitive values from your `.env.local` file.
 
 When running `azd deploy`:
 
@@ -169,17 +174,19 @@ When running `azd deploy`:
 
 ### How the `.env.local` file is generated when running in a pipeline
 
-The `.env.local` file is required to provision, build and deploy the app, but it should never be committed to your repository and so is not available to the pipeline when it clones your repo. To overcome this problem the pipelines provided in this template are capable of generating an `env.local` file by reading environment variables from the pipeline build agent context and merging them with the `.env.local.template` file.
+The `.env.local` file is required to provision, build and deploy the app, but it should never be committed to your repository and so is not available to the CI/CD pipeline when it clones your repo.
 
-Exactly how the environment variables are surfaced to the build agent is slightly different depending on whether you are using an Azure DevOps (AZDO) or GitHub Actions pipeline due to the specific capabilities of each, but the approach used to generate the `.env.local` file is broadly the same:
+To overcome this problem the pipelines provided in this template are capable of generating an `env.local` file by reading environment variables from the pipeline build agent context and merging them with the `.env.local.template` file.
+
+Exactly how the environment variables are surfaced to the build agent is slightly different depending on whether you are using an [Azure DevOps (AZDO)](#azure-devops-pipelines) or [GitHub Actions](#github-actions) pipeline due to the specific capabilities of each, but the approach used to generate the `.env.local` file is broadly the same:
 
 1. The pipeline determines the target environment for the deployment based on the branch ref that triggered the pipeline to run
+   * This can be extended to support multiple target environments
 2. Environment variables specific to the target environment are loaded into the build agent context
-  * These environment variables are named with the same keys used in the `.env.local.template` file
-3. The pipeline runs the `.azd/scripts/create-env-local.ps1` script, which merges the contents of the `.env.local.template` file the environment variables in the build agent context and outputs the result to `.env.local`
-4. `azd provision` and `azd deploy` then run as they would locally (i.e. as described above), using the `env.local` file created during that pipeline run
+   * These environment variables are named with the same keys used in the `.env.local.template` file
+3. The pipeline runs `npm run env:init`, which merges the contents of the `.env.local.template` file with the environment variables in the build agent context and outputs the result to `.env.local`
 
-> As mentioned, the specifics of how to add environment variables depends on whether you are using [Azure DevOps](#create-a-variable-group-for-your-environment) or [GitHub Actions](#add-environment-variables).
+⚡ `azd provision` and `azd deploy` then run as they would [locally](#how-azd-uses-environment-variables-in-this-template), using the `env.local` file created during the current pipeline run.
 
 ## Pipelines
 
@@ -196,161 +203,161 @@ Below are some instructions for how to setup and configure the pipelines include
 
 You don't need to do anything specific to add the workflow in GitHub Actions, the presence of the `.github/workflows/azure-dev.yml` file is enough, but you will need to:
 
-1. Create an Environment
-2. Setup permissions in Azure to allow GitHub Actions to create resources in your Azure subscription
-3. Add Environment variables
+1. [Create an Environment](#create-an-environment)
+2. [Setup permissions in Azure](#setup-permissions-in-azure) to allow GitHub Actions to create resources in your Azure subscription
+3. [Add Environment variables](#add-environment-variables)
 
 #### Create an Environment
 
-* Sign in to [GitHub](https://github.com/)
-* Find the repo where your code has been pushed
-* Go to `Settings` -> `Environments`
-* Click `New environment`, name it `production`, and click `Configure environment`
-* Add protection rules if you wish, though it's not required
+1. Sign in to [GitHub](https://github.com/)
+2. Find the repo where your code has been pushed
+3. Go to `Settings` -> `Environments`
+   * Click `New environment`, name it `production`, and click `Configure environment`
+   * Add protection rules if you wish, though it's not required
 
 #### Setup permissions in Azure
 
-* Create a Service principal in Azure
-  * Sign into the [Azure Portal](https://portal.azure.com)
-  * Make sure you are signed into the tenant you want the pipeline to deploy to
-  * Go to `Microsoft Entra ID` -> `App registrations`
-  * Click `New registration`
-  * Enter a `name` for your Service principal, and click `Register`
-  * Copy the newly created Service principal's `Application ID` and `Directory (tenant) ID` - we will need those later
-  * Go to `Certificates & secrets`
-  * Select `Federated credentials` and click `Add credential`
-  * Select the `GitHub Actions deploying Azure resources` scenario, and fill in the required information
-    * `Organization` - your GitHub username
-    * `Repository` - your GitHub repository name
-    * `Entity type` - `Environment`
-    * `GitHub environment name` - the environment name (`production`)
-    * `Name` - a name for the scenario (suggestion: concatenate `{Organization}-{Repository}-{GitHub environment name}`)
-  * Click `Add`
-* Give the Service principal the permissions required to deploy to your Azure Subscription
-  * Go to `Subscriptions`
-  * Select an existing or create a new Subscription where you will be deploying to
-  * Copy the `Subscription ID` - we will need this later
-  * Go to `Access control (IAM)` -> `Role assignments`
-  * Assign the `Contributor` role
-    * Click `Add` -> `Add role assignment`
-    * Select `Privileged administrator roles` -> `Contributor`
-    * Click `Next`
-    * Click `Select members` and select your Service principal
-    * Click `Review + assign` and complete the Role assignment
-  * Assign the `Role Based Access Control Administrator` role
-    * Click `Add` -> `Add role assignment`
-    * Select `Privileged administrator roles` -> `Contributor`
-    * Click `Next`
-    * Click `Select members` and select your Service principal
-    * Click `Next`
-    * Select `Constrain roles` and only allow assignment of the `AcrPull` role
-    * Click `Review + assign` and complete the Role assignment
+1. Create a Service principal in Azure
+   * Sign into the [Azure Portal](https://portal.azure.com)
+   * Make sure you are signed into the tenant you want the pipeline to deploy to
+   * Go to `Microsoft Entra ID` -> `App registrations`
+   * Click `New registration`
+   * Enter a `name` for your Service principal, and click `Register`
+   * Copy the newly created Service principal's `Application ID` and `Directory (tenant) ID` - we will need those later
+   * Go to `Certificates & secrets`
+   * Select `Federated credentials` and click `Add credential`
+   * Select the `GitHub Actions deploying Azure resources` scenario, and fill in the required information
+     * `Organization` - your GitHub username
+     * `Repository` - your GitHub repository name
+     * `Entity type` - `Environment`
+     * `GitHub environment name` - the environment name (`production`)
+     * `Name` - a name for the scenario (suggestion: concatenate `{Organization}-{Repository}-{GitHub environment name}`)
+   * Click `Add`
+2. Give the Service principal the permissions required to deploy to your Azure Subscription
+   * Go to `Subscriptions`
+   * Select an existing or create a new Subscription where you will be deploying to
+   * Copy the `Subscription ID` - we will need this later
+   * Go to `Access control (IAM)` -> `Role assignments`
+   * Assign the `Contributor` role
+     * Click `Add` -> `Add role assignment`
+     * Select `Privileged administrator roles` -> `Contributor`
+     * Click `Next`
+     * Click `Select members` and select your Service principal
+     * Click `Review + assign` and complete the Role assignment
+   * Assign the `Role Based Access Control Administrator` role
+     * Click `Add` -> `Add role assignment`
+     * Select `Privileged administrator roles` -> `Contributor`
+     * Click `Next`
+     * Click `Select members` and select your Service principal
+     * Click `Next`
+     * Select `Constrain roles` and only allow assignment of the `AcrPull` role
+     * Click `Review + assign` and complete the Role assignment
 
 #### Add Environment variables
 
-* Find and edit the Environment that you created in GitHub earlier
-* Add Environment variables
-  * `AZURE_ENV_NAME=prod`
-    * This doesn't need to match the GitHub Environment name and because it is used when generating Azure resource names it's a good idea to keep it short
-  * `AZURE_TENANT_ID={tenant_id}`
-    * Replace `{tenant_id}` with your Tenant's `Tenant ID`
-  * `AZURE_SUBSCRIPTION_ID={subscription_id}`
-    * Replace `{subscription_id}` with your Subscription's `Subscription ID`
-  * `AZURE_CLIENT_ID={service_principal_id}`
-    * Replace `{service_principal_id}` with your Service principal's `Application ID`
-  * `AZURE_LOCATION={location_name}`
-    * Replace `{location_name}` with your desired region name
-    * You can see a list of region names using the Azure CLI: `az account list-locations -o table`
-  * `SERVICE_WEB_CONTAINER_MIN_REPLICAS=1`
-    * Assuming that you don't want your production app to scale to zero
-* If you want to add additional variables (e.g. those found in the `.env.local.template` file) then you can continue to do so e.g. `SERVICE_WEB_CONTAINER_MAX_REPLICAS=5`
-  * If you don't add them then they will fallback to any default value set in the app or in the `main.bicep` file
+1. Find and edit the Environment that you created in GitHub earlier
+2. Add Environment variables
+   * `AZURE_ENV_NAME=prod`
+     * This doesn't need to match the GitHub Environment name and because it is used when generating Azure resource names it's a good idea to keep it short
+   * `AZURE_TENANT_ID={tenant_id}`
+     * Replace `{tenant_id}` with your Tenant's `Tenant ID`
+   * `AZURE_SUBSCRIPTION_ID={subscription_id}`
+     * Replace `{subscription_id}` with your Subscription's `Subscription ID`
+   * `AZURE_CLIENT_ID={service_principal_id}`
+     * Replace `{service_principal_id}` with your Service principal's `Application ID`
+   * `AZURE_LOCATION={location_name}`
+     * Replace `{location_name}` with your desired region name
+     * You can see a list of region names using the Azure CLI: `az account list-locations -o table`
+   * `SERVICE_WEB_CONTAINER_MIN_REPLICAS=1`
+     * Assuming that you don't want your production app to scale to zero
+3. If you want to add additional variables (e.g. those found in the `.env.local.template` file) then you can continue to do so e.g. `SERVICE_WEB_CONTAINER_MAX_REPLICAS=5`
+   * If you don't add them then they will fallback to any default value set in the app or in the `main.bicep` file
 
 If you add additional environment variables for use in your app and want to override them in this environment then you can come back here later to add or change anything as needed.
 
-> If you add environment variables to `.env.local.template` you must also make sure you make them available to the `.azd/scripts/create-env-local.ps1` script when it runs in the pipeline by editing the `.github/workflows/azure-dev.yml` file and editing the deploy job step named `Create .env.local file` - GitHub Actions doesn't automatically make environment variables available to scripts so they need to be added explicitly (this is something you don't need to do in the AZDO pipeline).
+> If you add environment variables to `.env.local.template` you must also make sure you edit the `Create .env.local file` step of the `deploy` job in `.github/workflows/azure-dev.yml` to make them available as environment variabls when `npm run env:init` is executed. GitHub Actions doesn't automatically make environment variables available to scripts so they need to be added explicitly to this step (this is something you don't need to do in the AZDO pipeline, which does expose its environment variables to scripts implicitly).
 
 ### Azure DevOps Pipelines
 
 You need to manually create a pipeline in Azure DevOps - the presence of the `.azdo/pipelines/azure-dev.yml` file is not enough - you will need to:
 
-1. Create the Pipeline
-2. Setup permissions to allow the Pipeline to create resources in your Azure subscription
-3. Create an Environment
-4. Create a Variable group for your Environment
+1. [Create the Pipeline](#create-the-pipeline)
+2. [Setup permissions](#setup-permissions) to allow the Pipeline to create resources in your Azure subscription
+3. [Create an Environment](#create-an-environment-1)
+4. [Create a Variable group for your Environment](#create-a-variable-group-for-your-environment)
 
 #### Create the Pipeline
 
-* Sign into [Azure DevOps](https://dev.azure.com)
-* Select an existing or create a new Project where you will create the pipeline
-* Go to `Pipelines` -> `Pipelines`
-* Click `New pipeline`
-* Connect to your repository
-* When prompted to `Configure your pipeline`, select `Existing Azure Pipelines YAML file` and select the `.azdo/pipelines/azure-dev.yml` file
-* `Save` (don't `Run`) the pipeline
+1. Sign into [Azure DevOps](https://dev.azure.com)
+2. Select an existing or create a new Project where you will create the pipeline
+3. Go to `Pipelines` -> `Pipelines`
+4. Click `New pipeline`
+   * Connect to your repository
+   * When prompted to `Configure your pipeline`, select `Existing Azure Pipelines YAML file` and select the `.azdo/pipelines/azure-dev.yml` file
+   * `Save` (don't `Run`) the pipeline
 
 #### Setup permissions
 
-* Create a Service connection for you Pipeline
-  * Go to `Project settings` -> `Service connections`
-  * Click `New service connection`
-    * Select `Azure Resource Manager`
-    * Select `Service pincipal (automatic)`
-    * Choose the `Subscription` that you wish to deploy your resources to
-    * Don't select a `Resource group`
-    * Name the Service connection `azconnection`
-      * This is the default name used by `azd` - feel free to change it, but if you do you will need to update your `azure-dev.yml` file also
-    * Add a `Description` if you want
-    * Check `Grant access permissions to all pipelines`
-      * You can setup more fine grained permissions if you don't wish to do this
-    * Click `Save`
-* Give the Service connection the permissions required to deploy to your Azure Subscription
-  * After your Service connection has been created, click on it to edit it
-  * Click on `Manage Service Principal`
-  * Copy the `Display name`
-    * If you don't like the generated name you can go to `Branding & properties` and change the `Name`
-  * Copy the Service principal's `Directory (tenant) ID` - we will need that later
-  * Go back to your Service connection in AZDO
-  * Click on `Manage service connection roles`
-  * Go to `Role assignments`
-  * Assign the `Role Based Access Control Administrator` role
-    * Click `Add` -> `Add role assignment`
-    * Select `Privileged administrator roles` -> `Contributor`
-    * Click `Next`
-    * Click `Select members` and select your Service principal
-    * Click `Next`
-    * Select `Constrain roles` and only allow assignment of the `AcrPull` role
-    * Click `Review + assign` and complete the Role assignment
-  * Go to the `Overview` tab of your Subscription
-  * Copy the `Subscription ID` - we will need this later
-  * Go back to your Service connection in AZDO
+1. Create a Service connection for you Pipeline
+   * Go to `Project settings` -> `Service connections`
+   * Click `New service connection`
+     * Select `Azure Resource Manager`
+     * Select `Service pincipal (automatic)`
+     * Choose the `Subscription` that you wish to deploy your resources to
+     * Don't select a `Resource group`
+     * Name the Service connection `azconnection`
+       * This is the default name used by `azd` - feel free to change it, but if you do you will need to update your `azure-dev.yml` file also
+     * Add a `Description` if you want
+     * Check `Grant access permissions to all pipelines`
+       * You can setup more fine grained permissions if you don't wish to do this
+     * Click `Save`
+2. Give the Service connection the permissions required to deploy to your Azure Subscription
+   * After your Service connection has been created, click on it to edit it
+   * Click on `Manage Service Principal`
+   * Copy the `Display name`
+     * If you don't like the generated name you can go to `Branding & properties` and change the `Name`
+   * Copy the Service principal's `Directory (tenant) ID` - we will need that later
+   * Go back to your Service connection in AZDO
+   * Click on `Manage service connection roles`
+   * Go to `Role assignments`
+   * Assign the `Role Based Access Control Administrator` role
+     * Click `Add` -> `Add role assignment`
+     * Select `Privileged administrator roles` -> `Contributor`
+     * Click `Next`
+     * Click `Select members` and select your Service principal
+     * Click `Next`
+     * Select `Constrain roles` and only allow assignment of the `AcrPull` role
+     * Click `Review + assign` and complete the Role assignment
+   * Go to the `Overview` tab of your Subscription
+   * Copy the `Subscription ID` - we will need this later
+   * Go back to your Service connection in AZDO
 
 #### Create an Environment
 
-* Go to `Pipelines` -> `Environments`
-* Create a `production` environment
-  * Add a `Description` if you want
-  * For `Resource` select `None`
-* You can setup Approvals & checks if you wish
+1. Go to `Pipelines` -> `Environments`
+2. Create a `production` environment
+   * Add a `Description` if you want
+   * For `Resource` select `None`
+   * You can setup Approvals & checks if you wish
 
 #### Create a Variable group for your Environment
 
-* Go to `Pipelines` -> `Library`
-* Add a `Variable group` called `production`
-* Add the following variables:
-  * `AZURE_ENV_NAME=prod`
-    * This doesn't need to match the Environment name and because it is used when generating Azure resource names it's a good idea to keep it short
-  * `AZURE_TENANT_ID={tenant_id}`
-    * Replace `{tenant_id}` with your Tenant's `Tenant ID`
-  * `AZURE_SUBSCRIPTION_ID={subscription_id}`
-    * Replace `{subscription_id}` with your Subscription's `Subscription ID`
-  * `AZURE_LOCATION={location_name}`
-    * Replace `{location_name}` with your desired region name
-    * You can see a list of region names using the Azure CLI: `az account list-locations -o table`
-  * `SERVICE_WEB_CONTAINER_MIN_REPLICAS=1`
-    * Assuming that you don't want your production app to scale to zero
-* If you want to add additional variables (e.g. those found in the `.env.local.template` file) then you can continue to do so e.g. `SERVICE_WEB_CONTAINER_MAX_REPLICAS=5`
-  * If you don't add them then they will fallback to any default value set in the app or in the `main.bicep` file
+1. Go to `Pipelines` -> `Library`
+2. Add a `Variable group` called `production`
+3. Add the following variables:
+   * `AZURE_ENV_NAME=prod`
+     * This doesn't need to match the Environment name and because it is used when generating Azure resource names it's a good idea to keep it short
+   * `AZURE_TENANT_ID={tenant_id}`
+     * Replace `{tenant_id}` with your Tenant's `Tenant ID`
+   * `AZURE_SUBSCRIPTION_ID={subscription_id}`
+     * Replace `{subscription_id}` with your Subscription's `Subscription ID`
+   * `AZURE_LOCATION={location_name}`
+     * Replace `{location_name}` with your desired region name
+     * You can see a list of region names using the Azure CLI: `az account list-locations -o table`
+   * `SERVICE_WEB_CONTAINER_MIN_REPLICAS=1`
+     * Assuming that you don't want your production app to scale to zero
+4. If you want to add additional variables (e.g. those found in the `.env.local.template` file) then you can continue to do so e.g. `SERVICE_WEB_CONTAINER_MAX_REPLICAS=5`
+   * If you don't add them then they will fallback to any default value set in the app or in the `main.bicep` file
 
 If you add additional environment variables for use in your app and want to override them in this environment then you can come back here later to add or change anything as needed.
 
@@ -374,23 +381,24 @@ When you add a custom domain name to your container app (as described above) the
 
 To add the managed certificate to your container app:
 
-* Sign in to the [Azure Portal](https://portal.azure.com)
-* Go to the Container Apps Environment resource that the Container App you added the custom domain name to is located under
-* Go to `Certificates` -> `Managed certificate`
-* Click `Add certificate`
-* Select your `Custom domain` name
-* Choose the appropriate `Hostname record type`
-* Follow the instructions under `Domain name validation`
-  * If you need further instruction there is [official documentation](https://learn.microsoft.com/en-us/azure/container-apps/custom-domains-managed-certificates?pivots=azure-portal#add-a-custom-domain-and-managed-certificate)
-* `Validate` the custom domain name
-* `Add` the certificate
+1. Sign in to the [Azure Portal](https://portal.azure.com)
+2. Go to the Container Apps Environment resource that the Container App you added the custom domain name to is located under
+3. Go to `Certificates` -> `Managed certificate`
+4. Click `Add certificate`
+   * Select your `Custom domain` name
+   * Choose the appropriate `Hostname record type`
+   * Follow the instructions under `Domain name validation`
+     * If you need further instruction there is [official documentation](https://learn.microsoft.com/en-us/azure/container-apps/custom-domains-managed-certificates?pivots=azure-portal#add-a-custom-domain-and-managed-certificate)
+   * `Validate` the custom domain name
+   * `Add` the certificate
 
 Azure will now provision the certificate. When the `Certificate Status` is `Suceeded` you will need its ID:
 
-* Copy the `Certificate Name`
-* Go to `Overview` -> `JSON View`
-* Copy the `Resource ID`
-* The `Certificate ID` can be formulated using the pattern: `{Resource ID}/managedCertificates/{Certificate Name}`
+1. Copy the `Certificate Name`
+2. Go to `Overview` -> `JSON View`
+3. Copy the `Resource ID`
+4. Create the `Certificate ID` using the pattern:
+   * `{Resource ID}/managedCertificates/{Certificate Name}`
 
 Next you will need to add an environment variable named `SERVICE_WEB_CUSTOM_DOMAIN_CERT_ID` set to the value of your `Certificate ID`. Follow the same process you followed when adding your custom domain name to add this environment variable so that it sits alongside the custom domain name.
 
