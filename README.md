@@ -267,10 +267,12 @@ You don't need to do anything specific to add the workflow in GitHub Actions, th
 #### Create an Environment
 
 1. Sign in to [GitHub](https://github.com/)
-2. Find the repo where your code has been pushed
+2. Find the repo where you have pushed your code, or your fork if you forked this repo
 3. Go to `Settings` -> `Environments`
    * Click `New environment`, name it `production`, and click `Configure environment`
    * Add protection rules if you wish, though it's not required
+
+> You can read more about creating environments in the [GitHub documentation](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#creating-an-environment). Note that there are limitations with Environments in GitHub if you are using a Free acount and your repository is private.
 
 #### Setup permissions in Azure
 
