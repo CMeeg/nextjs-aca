@@ -157,7 +157,9 @@ The template also includes a function that allows you to generate a CDN URL from
 
 💡 The `getCdnUrl` function uses a [`buildId`](https://nextjs.org/docs/app/api-reference/next-config-js/generateBuildId) when constructing the URL so that the URLs will change when you deploy a new version of your app, which is provided as a "cache busting" strategy.
 
-> The CDN features described above require the presence of the environment variables `NEXT_PUBLIC_CDN_URL`, `NEXT_PUBLIC_CDN_HOSTNAME`, `NEXT_COMPRESS` and `NEXT_PUBLIC_BUILD_ID`. These are all provided to the app automatically with the exception of `NEXT_COMPRESS`, which is provided by `.env.production`.
+The template also includes a function that allows you to generate an absolute URL from a relative path if you require it. To use the function you can `import { getAbsoluteUrl } from '@/lib/url'`.
+
+> The features described above require the presence of the environment variables `NEXT_PUBLIC_CDN_URL`, `NEXT_PUBLIC_CDN_HOSTNAME`, `NEXT_COMPRESS`, `NEXT_PUBLIC_BUILD_ID` and `NEXT_PUBLIC_BASE_URL`. These are all provided to the app automatically with the exception of `NEXT_COMPRESS`, which is provided by `.env.production`.
 >
 > If these environment variables are not provided, for example when running in your development environment outside of `azd provision`, the `assetPrefix`, `remotePatterns` and `buildId` will not be set, and the `getCdnUrl` function will return the relative path that was provided as input.
 
@@ -435,11 +437,20 @@ To add a custom domain name to your Container App you will need to add an enviro
 * In GitHub Actions: as an [Environment variable](#add-environment-variables) in the target Environment (e.g. `production`)
 * In Azure DevOps: as a [Variable in the Variable group](#create-a-variable-group-for-your-environment) for the target Environment (e.g. `production`)
 
+You will then need to:
+
+* Run `azd provision` for the custom domain name to be added to your container app
+* Run `azd deploy` for the custom domain name to be set as your app's base URL
+
+> The base URL is used by the [`getAbsoluteUrl`](#azure-cdn) function provided by this template.
+
 💡 When you add a custom domain name a redirect rule is automatically added so that if you attempt to navigate to the default domain of the Container App there will be a permanent redirect to the custom domain name - this redirect is configured in `next.config.js`.
 
 ### Add a free managed certificate for your custom domain
 
-When you add a custom domain name to your Container App (as described above) there is no SSL certificate provided by default, but Azure provides a facility to add a free managed SSL certificate:
+When you add a custom domain name to your Container App there is no SSL certificate provided by default, but Azure provides a facility to add a free managed SSL certificate:
+
+💡 To successfully complete the steps below you will need to complete all of the steps described in [adding a custom domain name](#adding-a-custom-domain-name) first otherwise the `Custom domain` name will not be available on the Container Apps Environment in step 1.
 
 1. Create the certificate
    * Sign in to the [Azure Portal](https://portal.azure.com)
