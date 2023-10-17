@@ -306,7 +306,7 @@ You don't need to do anything specific to add the workflow in GitHub Actions, th
      * Click `Review + assign` and complete the Role assignment
    * Assign the `Role Based Access Control Administrator` role
      * Click `Add` -> `Add role assignment`
-     * Select `Privileged administrator roles` -> `Contributor`
+     * Select `Privileged administrator roles` -> `Role Based Access Control Administrator`
      * Click `Next`
      * Click `Select members` and select your Service principal
      * Click `Next`
@@ -384,7 +384,7 @@ You need to manually create a pipeline in Azure DevOps - the presence of the `.a
    * Go to `Role assignments`
    * Assign the `Role Based Access Control Administrator` role
      * Click `Add` -> `Add role assignment`
-     * Select `Privileged administrator roles` -> `Contributor`
+     * Select `Privileged administrator roles` -> `Role Based Access Control Administrator`
      * Click `Next`
      * Click `Select members` and select your Service principal
      * Click `Next`
