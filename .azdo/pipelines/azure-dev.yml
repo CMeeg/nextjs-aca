@@ -65,6 +65,10 @@ jobs:
             AZURE_LOCATION: $(AZURE_LOCATION)
             AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
 
+        - pwsh: |
+            npm run env:dv
+          displayName: Domain Verification
+
         - task: AzureCLI@2
           displayName: Deploy Application
           inputs:

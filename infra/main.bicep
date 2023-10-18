@@ -227,9 +227,12 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_CONTAINER_ENVIRONMENT_NAME string = containerAppEnvironment.outputs.name
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+output AZURE_CONTAINER_STATIC_IP string = containerAppEnvironment.outputs.staticIp
+output AZURE_CONTAINER_DOMAIN_VERIFICATION_CODE string = containerAppEnvironment.outputs.domainVerificationCode
 
 // Web app outputs
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsights.outputs.connectionString
+output AZURE_WEB_APP_FQDN string = webAppServiceContainerApp.outputs.fqdn
 output NEXT_PUBLIC_APP_ENV string = environmentName
 output NEXT_PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsights.outputs.connectionString
 output NEXT_PUBLIC_BASE_URL string = webAppServiceUri

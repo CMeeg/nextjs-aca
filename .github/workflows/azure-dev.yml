@@ -107,6 +107,12 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Domain Verification
+        run: npm run env:dv
+        shell: pwsh
+        env:
+          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+
       - name: Deploy Application
         run: azd deploy --no-prompt
         shell: pwsh

@@ -6,6 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "env:init": "pwsh ./.azd/scripts/create-env-local.ps1",
+    "env:dv": "pwsh ./.azd/scripts/read-domain-verification-vars.ps1",
     "lint": "next lint",
     "start": "next start"
   },

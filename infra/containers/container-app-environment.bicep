@@ -21,3 +21,5 @@ resource environment 'Microsoft.App/managedEnvironments@2023-05-01' = {
 output id string = environment.id
 output name string = environment.name
 output defaultDomain string = environment.properties.defaultDomain
+output staticIp string = environment.properties.staticIp
+output domainVerificationCode string = environment.properties.customDomainConfiguration.customDomainVerificationId
