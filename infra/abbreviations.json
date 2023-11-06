@@ -17,5 +17,9 @@
   },
   "security": {
     "user_assigned_identity": "id"
+  },
+  "storage": {
+    "file_share": "share",
+    "storage_account": "st"
   }
 }

@@ -14,6 +14,7 @@ param location string
 //    "value": "myGroupName"
 // }
 param applicationInsightsName string = ''
+param storageAccountName string = ''
 param containerAppEnvironmentName string = ''
 param containerAppName string = ''
 param containerRegistryName string = ''
@@ -91,6 +92,16 @@ module appInsights './insights/application-insights.bicep' = {
   }
 }
 
+module storageAccount './storage/storage-account.bicep' = {
+  name: 'storageAccount'
+  scope: resourceGroup
+  params: {
+    name: !empty(storageAccountName) ? storageAccountName : buildProjectResourceName(abbrs.storage.storage_account, projectName, environmentName, resourceToken, false)
+    location: location
+    tags: tags
+  }
+}
+
 var webAppServiceCustomDomainName = stringOrDefault(envVars.SERVICE_WEB_CUSTOM_DOMAIN_NAME, '')
 
 module containerAppEnvironment './containers/container-app-environment.bicep' = {
@@ -156,15 +167,18 @@ module webAppServiceContainerApp './containers/container-app.bicep' = {
     name: webAppServiceContainerAppName
     location: location
     tags: union(tags, { 'azd-service-name': webAppServiceName })
-    containerAppEnvironmentId: containerAppEnvironment.outputs.id
+    containerAppEnvironmentName: containerAppEnvironment.outputs.name
     userAssignedIdentityId: webAppServiceIdentity.outputs.id
     containerRegistryName: containerRegistry.outputs.name
+    storageAccountName: storageAccount.outputs.name
+    fileShareName: buildServiceResourceName(abbrs.storage.file_share, projectName, webAppServiceName, environmentName, resourceToken, true)
     containerCpuCoreCount: stringOrDefault(envVars.SERVICE_WEB_CONTAINER_CPU_CORE_COUNT, '0.5')
     containerMemory: stringOrDefault(envVars.SERVICE_WEB_CONTAINER_MEMORY, '1.0Gi')
     containerMinReplicas: intOrDefault(envVars.SERVICE_WEB_CONTAINER_MIN_REPLICAS, 0)
     containerMaxReplicas: intOrDefault(envVars.SERVICE_WEB_CONTAINER_MAX_REPLICAS, 1)
     customDomainName: webAppServiceCustomDomainName
     certificateId: stringOrDefault(envVars.SERVICE_WEB_CUSTOM_DOMAIN_CERT_ID, '')
+    targetPort: 3001
     env: [
       {
         name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -215,7 +229,16 @@ module webAppServiceContainerApp './containers/container-app.bicep' = {
         value: webAppServiceName
       }
     ]
-    targetPort: 3000
+    proxyEnv: [
+      {
+        name: 'CDN_HOSTNAME'
+        value: webAppServiceCdn.outputs.endpointHostName
+      }
+      {
+        name: 'SERVICE_WEB_HOSTNAME'
+        value: webAppServiceHostName
+      }
+    ]
   }
 }
 

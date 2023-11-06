@@ -1,9 +1,11 @@
 param name string
 param location string = resourceGroup().location
 param tags object = {}
-param containerAppEnvironmentId string
+param containerAppEnvironmentName string
 param userAssignedIdentityId string
 param containerRegistryName string
+param storageAccountName string
+param fileShareName string
 
 param allowedOrigins array = []
 param certificateId string = ''
@@ -14,6 +16,7 @@ param containerMinReplicas int = 0
 param containerName string = 'main'
 param customDomainName string = ''
 param env array = []
+param proxyEnv array = []
 param external bool = true
 param imageName string = ''
 param ingressEnabled bool = true
@@ -23,10 +26,109 @@ param serviceBinds array = []
 param serviceType string = ''
 param targetPort int = 80
 
+resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' existing = {
+  name: storageAccountName
+}
+
+resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2022-09-01' = {
+  name: 'default'
+  parent: storageAccount
+}
+
+resource environment 'Microsoft.App/managedEnvironments@2023-05-01' existing = {
+  name: containerAppEnvironmentName
+}
+
+var proxyCaddyfileStorageName = 'proxy-caddyfile'
+
+resource proxyCaddyfileFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-09-01' = {
+  name: proxyCaddyfileStorageName
+  parent: fileService
+  properties: {
+    accessTier: 'Hot'
+    enabledProtocols: 'SMB'
+  }
+}
+
+resource proxyCaddyfileStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
+  name: proxyCaddyfileStorageName
+  parent: environment
+  dependsOn: [
+    proxyCaddyfileFileShare
+  ]
+  properties: {
+    azureFile: {
+      accessMode: 'ReadWrite'
+      accountName: storageAccountName
+      accountKey: storageAccount.listKeys().keys[0].value
+      shareName: proxyCaddyfileStorageName
+    }
+  }
+}
+
+var proxyDataStorageName = 'proxy-data'
+
+resource proxyDataFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-09-01' = {
+  name: proxyDataStorageName
+  parent: fileService
+  properties: {
+    accessTier: 'Hot'
+    enabledProtocols: 'SMB'
+  }
+}
+
+resource proxyDataStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
+  name: proxyDataStorageName
+  parent: environment
+  dependsOn: [
+    proxyDataFileShare
+  ]
+  properties: {
+    azureFile: {
+      accessMode: 'ReadWrite'
+      accountName: storageAccountName
+      accountKey: storageAccount.listKeys().keys[0].value
+      shareName: proxyDataStorageName
+    }
+  }
+}
+
+var proxyConfigStorageName = 'proxy-config'
+
+resource proxyConfigFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-09-01' = {
+  name: proxyConfigStorageName
+  parent: fileService
+  properties: {
+    accessTier: 'Hot'
+    enabledProtocols: 'SMB'
+  }
+}
+
+resource proxyConfigStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
+  name: proxyConfigStorageName
+  parent: environment
+  dependsOn: [
+    proxyConfigFileShare
+  ]
+  properties: {
+    azureFile: {
+      accessMode: 'ReadWrite'
+      accountName: storageAccountName
+      accountKey: storageAccount.listKeys().keys[0].value
+      shareName: proxyConfigStorageName
+    }
+  }
+}
+
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: name
   location: location
   tags: tags
+  dependsOn: [
+    proxyCaddyfileStorage
+    proxyDataStorage
+    proxyConfigStorage
+  ]
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
@@ -34,7 +136,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
     }
   }
   properties: {
-    managedEnvironmentId: containerAppEnvironmentId
+    managedEnvironmentId: environment.id
     configuration: {
       activeRevisionsMode: revisionMode
       ingress: ingressEnabled ? {
@@ -74,11 +176,51 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             memory: containerMemory
           }
         }
+        {
+          image: 'caddy:2.7.5-alpine'
+          name: '${containerName}-proxy'
+          env: proxyEnv
+          resources: {
+            cpu: json(containerCpuCoreCount)
+            memory: containerMemory
+          }
+          volumeMounts: [
+            {
+              volumeName: proxyCaddyfileStorageName
+              mountPath: '/etc/caddy'
+            }
+            {
+              volumeName: proxyDataStorageName
+              mountPath: '/data'
+            }
+            {
+              volumeName: proxyConfigStorageName
+              mountPath: '/config'
+            }
+          ]
+        }
       ]
       scale: {
         minReplicas: containerMinReplicas
         maxReplicas: containerMaxReplicas
       }
+      volumes: [
+        {
+          name: proxyCaddyfileStorageName
+          storageType: 'AzureFile'
+          storageName: proxyCaddyfileStorageName
+        }
+        {
+          name: proxyDataStorageName
+          storageType: 'AzureFile'
+          storageName: proxyDataStorageName
+        }
+        {
+          name: proxyConfigStorageName
+          storageType: 'AzureFile'
+          storageName: proxyConfigStorageName
+        }
+      ]
     }
   }
 }

@@ -1,0 +1,37 @@
+{
+	admin off
+
+	servers {
+		max_header_size 4kb
+
+		timeouts {
+			read_body 10s
+			read_header 10s
+			write 10s
+			idle 1m
+		}
+
+		trusted_proxies static private_ranges
+	}
+}
+
+http://{$SERVICE_WEB_HOSTNAME}:3001 {
+	@cdn_request {
+		header X-Forwarded-Host {$CDN_HOSTNAME}
+	}
+
+	handle @cdn_request {
+		reverse_proxy http://{$HOSTNAME}:3000 {
+			# If the origin request includes a range that is adhered to upstream a 206 response will be returned including a content range header, but if that response is encoded (i.e. gzip) downstream then the content range in the response will be innacurate and in the case of requests from the CDN it will cause timeouts because the CDN waits for bytes from the origin that will never arrive - if we remove the Range header then the upstream response will be a regular 200 and not include a content range. See https://learn.microsoft.com/en-us/answers/questions/1338000/http2-protocol-error-with-azure-cdn#answer-1292914
+			header_up -Range
+		}
+	}
+
+	handle {
+		reverse_proxy http://{$HOSTNAME}:3000
+	}
+
+	encode gzip
+
+	log
+}

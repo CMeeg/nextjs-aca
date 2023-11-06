@@ -4,6 +4,7 @@
     "EditorConfig.EditorConfig",
     "esbenp.prettier-vscode",
     "GitHub.vscode-github-actions",
+    "matthewpi.caddyfile-support",
     "ms-azuretools.azure-dev",
     "ms-azuretools.vscode-bicep",
     "ms-azuretools.vscode-docker",
