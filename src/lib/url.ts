@@ -32,12 +32,20 @@ const getAbsoluteUrl = (path?: string) => {
   return joinUrlSegments([baseUrl, path])
 }
 
-const getCdnUrl = (path: string) => {
-  if (!baseCdnUrl || !buildId) {
-    return path
+const getCdnUrl = (path?: string, includeFingerprint = true) => {
+  if (!baseCdnUrl) {
+    return path ?? ''
   }
 
-  return joinUrlSegments([baseCdnUrl, buildId, path])
+  if (!path) {
+    return baseCdnUrl
+  }
+
+  if (includeFingerprint && buildId) {
+    return joinUrlSegments([baseCdnUrl, buildId, path])
+  }
+
+  return joinUrlSegments([baseCdnUrl, path])
 }
 
 export { getAbsoluteUrl, getCdnUrl }
