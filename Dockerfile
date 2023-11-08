@@ -55,4 +55,8 @@ EXPOSE 3000
 
 ENV PORT 3000
 
+# Needs to be larger than Caddy's proxy timeout
+# https://nextjs.org/docs/app/api-reference/next-cli#keep-alive-timeout
+ENV KEEP_ALIVE_TIMEOUT 140000
+
 CMD ["node", "server.js"]

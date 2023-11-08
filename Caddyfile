@@ -28,8 +28,15 @@ http://{$SERVICE_WEB_HOSTNAME}:3001 {
 	}
 
 	handle {
-		reverse_proxy http://{$HOSTNAME}:3000
+		reverse_proxy http://{$HOSTNAME}:3000 http://{$HOSTNAME}:80 {
+			lb_policy first
+			fail_duration 30s
+			max_fails 5
+			unhealthy_status 502
+		}
 	}
+
+	header -Server
 
 	encode gzip
 
