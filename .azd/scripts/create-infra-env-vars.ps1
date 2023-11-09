@@ -79,7 +79,7 @@ function Merge-Objects {
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Read `.env`, `.env.production` and `.env.local` files into memory
+# Read `.env`, `.env.production`, azd `.env` and `.env.local` files into memory
 
 $envPath = Join-Path $scriptDir "../../.env"
 $env = Read-EnvVars -path $envPath
@@ -87,12 +87,16 @@ $env = Read-EnvVars -path $envPath
 $envProductionPath = Join-Path $scriptDir "../../.env.production"
 $envProduction = Read-EnvVars -path $envProductionPath
 
+$envAzdPath = Join-Path $scriptDir "../../.azure/${env:AZURE_ENV_NAME}/.env"
+$envAzd = Read-EnvVars -path $envAzdPath
+
 $envLocalPath = Join-Path $scriptDir "../../.env.local"
 $envLocal = Read-EnvVars -path $envLocalPath
 
-# Merge `.env.production` and `.env.local` into `.env` (duplicate keys will be overwritten)
+# Merge `.env.production`, azd `.env` and `.env.local` into `.env` (duplicate keys will be overwritten)
 
 $envVars = Merge-Objects -base $env -with $envProduction
+$envVars = Merge-Objects -base $envVars -with $envAzd
 $envVars = Merge-Objects -base $envVars -with $envLocal
 
 # Produce a `env-vars.json` file that can be used by the infra scripts
