@@ -10,6 +10,9 @@ hooks:
   postprovision:
     shell: pwsh
     run: ./.azd/hooks/postprovision.ps1
+  postdown:
+    shell: pwsh
+    run: ./.azd/hooks/postdown.ps1
 services:
   web:
     project: ./
