@@ -223,6 +223,7 @@ module webAppServiceContainerApp './containers/container-app.bicep' = {
 // azd outputs
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
+output AZURE_RESOURCE_GROUP string = resourceGroup.name
 
 // Container outputs
 output AZURE_CONTAINER_ENVIRONMENT_NAME string = containerAppEnvironment.outputs.name
@@ -240,3 +241,4 @@ output NEXT_PUBLIC_BASE_URL string = webAppServiceUri
 output NEXT_PUBLIC_BUILD_ID string = buildId
 output NEXT_PUBLIC_CDN_HOSTNAME string = webAppServiceCdn.outputs.endpointHostName
 output NEXT_PUBLIC_CDN_URL string = webAppServiceCdn.outputs.endpointUri
+output SERVICE_WEB_ENDPOINTS string[] = [webAppServiceUri]
