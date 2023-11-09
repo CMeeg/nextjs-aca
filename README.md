@@ -207,7 +207,7 @@ When running `azd provision`:
    * The environment variables exposed via `envVars` can be used to set properties of the infratructure resources defined in the `main.bicep` script such as min/max scale replicas, custom domain name, and to pass environment variables through to the Container App that are required at runtime
 3. `azd` writes any `output`(s) from the `main.bicep` file to `.azure/{AZURE_ENV_NAME}/.env`
    * This is standard behaviour of `azd provision` and not specific to this template
-4. A `postprovision` hooks runs the `.azd/hooks/postprovision.ps1` script
+4. A `postprovision` hook runs the `.azd/hooks/postprovision.ps1` script
    * The contents of the `.azure/{AZURE_ENV_NAME}/.env` file are merged with the `.env.local` file (if one exists) and the results are written to a `.env.azure` file
    * The `.env.azure` file will be used by `azd deploy`
 
@@ -220,6 +220,11 @@ When running `azd deploy`:
 1. The `Dockerfile` copies all `.env*` files from the local disk
 2. It then copies `.env.azure` and renames and overwrites the `.env.local` file with it
 3. `next build` then runs, which loads in env files as normal including the `.env.local` file
+
+When running `azd down`:
+
+1. A `postdown` hook runs the `.azd/hooks/postdown.ps1` script
+   * The contents of the `.azure/{AZURE_ENV_NAME}/.env` file is "cleaned up" so that only some [well-known variables](https://github.com/Azure/azure-dev/issues/1458) are retained
 
 ### How the `.env.local` file is generated when running in a pipeline
 
