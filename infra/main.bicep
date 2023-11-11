@@ -9,6 +9,9 @@ param environmentName string
 @description('Primary location for all resources')
 param location string
 
+@description('Web app exists in environment')
+param webAppExists bool = false
+
 // Optional parameters to override the default azd resource naming conventions. Update the main.parameters.json file to provide values. For example:
 // "resourceGroupName": {
 //    "value": "myGroupName"
@@ -149,17 +152,17 @@ module webAppServiceCdn './cdn/cdn.bicep' = {
 
 var buildId = uniqueString(resourceGroup.id, deployment().name)
 
-module webAppServiceContainerApp './containers/container-app.bicep' = {
+module webAppServiceContainerApp './web-app.bicep' = {
   name: '${webAppServiceName}-container-app'
   scope: resourceGroup
   params: {
     name: webAppServiceContainerAppName
     location: location
     tags: union(tags, { 'azd-service-name': webAppServiceName })
+    exists: webAppExists
     containerAppEnvironmentId: containerAppEnvironment.outputs.id
     userAssignedIdentityId: webAppServiceIdentity.outputs.id
     containerRegistryName: containerRegistry.outputs.name
-    imageName: stringOrDefault(envVars.SERVICE_WEB_IMAGE_NAME, '')
     containerCpuCoreCount: stringOrDefault(envVars.SERVICE_WEB_CONTAINER_CPU_CORE_COUNT, '0.5')
     containerMemory: stringOrDefault(envVars.SERVICE_WEB_CONTAINER_MEMORY, '1.0Gi')
     containerMinReplicas: intOrDefault(envVars.SERVICE_WEB_CONTAINER_MIN_REPLICAS, 0)
