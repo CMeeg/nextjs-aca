@@ -221,11 +221,6 @@ When running `azd deploy`:
 2. It then copies `.env.azure` and renames and overwrites the `.env.local` file with it
 3. `next build` then runs, which loads in env files as normal including the `.env.local` file
 
-When running `azd down`:
-
-1. A `postdown` hook runs the `.azd/hooks/postdown.ps1` script
-   * The contents of the `.azure/{AZURE_ENV_NAME}/.env` file is "cleaned up" so that only some [well-known variables](https://github.com/Azure/azure-dev/issues/1458) are retained
-
 ### How the `.env.local` file is generated when running in a pipeline
 
 The `.env.local` file is required to provision, build and deploy the app, but it should never be committed to your repository and so is not available to the CI/CD pipeline when it clones your repo.
