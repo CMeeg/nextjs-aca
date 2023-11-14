@@ -9,6 +9,9 @@ param environmentName string
 @description('Primary location for all resources')
 param location string
 
+@description('Web app exists in environment')
+param webAppExists bool = false
+
 // Optional parameters to override the default azd resource naming conventions. Update the main.parameters.json file to provide values. For example:
 // "resourceGroupName": {
 //    "value": "myGroupName"
@@ -160,13 +163,14 @@ module webAppServiceCdn './cdn/cdn.bicep' = {
 
 var buildId = uniqueString(resourceGroup.id, deployment().name)
 
-module webAppServiceContainerApp './containers/container-app.bicep' = {
+module webAppServiceContainerApp './web-app.bicep' = {
   name: '${webAppServiceName}-container-app'
   scope: resourceGroup
   params: {
     name: webAppServiceContainerAppName
     location: location
     tags: union(tags, { 'azd-service-name': webAppServiceName })
+    exists: webAppExists
     containerAppEnvironmentName: containerAppEnvironment.outputs.name
     userAssignedIdentityId: webAppServiceIdentity.outputs.id
     containerRegistryName: containerRegistry.outputs.name
@@ -245,6 +249,7 @@ module webAppServiceContainerApp './containers/container-app.bicep' = {
 // azd outputs
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
+output AZURE_RESOURCE_GROUP string = resourceGroup.name
 
 // Container outputs
 output AZURE_CONTAINER_ENVIRONMENT_NAME string = containerAppEnvironment.outputs.name
@@ -262,3 +267,4 @@ output NEXT_PUBLIC_BASE_URL string = webAppServiceUri
 output NEXT_PUBLIC_BUILD_ID string = buildId
 output NEXT_PUBLIC_CDN_HOSTNAME string = webAppServiceCdn.outputs.endpointHostName
 output NEXT_PUBLIC_CDN_URL string = webAppServiceCdn.outputs.endpointUri
+output SERVICE_WEB_ENDPOINTS string[] = [webAppServiceUri]
