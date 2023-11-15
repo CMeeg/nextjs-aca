@@ -138,6 +138,8 @@ var webAppServiceHostName = !empty(webAppServiceCustomDomainName) ? webAppServic
 
 var webAppServiceUri = 'https://${webAppServiceHostName}'
 
+var buildId = uniqueString(resourceGroup.id, deployment().name)
+
 module webAppServiceCdn './cdn/cdn.bicep' = {
   name: '${webAppServiceName}-cdn'
   scope: resourceGroup
@@ -147,10 +149,9 @@ module webAppServiceCdn './cdn/cdn.bicep' = {
     location: location
     tags: tags
     originHostName: webAppServiceHostName
+    buildId: buildId
   }
 }
-
-var buildId = uniqueString(resourceGroup.id, deployment().name)
 
 module webAppServiceContainerApp './web-app.bicep' = {
   name: '${webAppServiceName}-container-app'
@@ -176,7 +177,7 @@ module webAppServiceContainerApp './web-app.bicep' = {
       }
       {
         name: 'NEXT_COMPRESS'
-        value: stringOrDefault(envVars.NEXT_COMPRESS, 'false')
+        value: stringOrDefault(envVars.NEXT_COMPRESS, 'true')
       }
       {
         name: 'NEXT_PUBLIC_APP_ENV'
