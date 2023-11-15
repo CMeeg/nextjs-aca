@@ -2,9 +2,10 @@ param name string
 param location string = resourceGroup().location
 param tags object = {}
 param exists bool = false
-param containerAppEnvironmentId string
+param containerAppEnvironmentName string
 param userAssignedIdentityId string
 param containerRegistryName string
+param storageAccountName string
 
 param allowedOrigins array = []
 param certificateId string = ''
@@ -15,6 +16,7 @@ param containerMinReplicas int = 0
 param containerName string = 'main'
 param customDomainName string = ''
 param env array = []
+param proxyEnv array = []
 param external bool = true
 param imageName string = ''
 param ingressEnabled bool = true
@@ -34,9 +36,10 @@ module containerApp './containers/container-app.bicep' = {
     name: name
     location: location
     tags: tags
-    containerAppEnvironmentId: containerAppEnvironmentId
+    containerAppEnvironmentName: containerAppEnvironmentName
     userAssignedIdentityId: userAssignedIdentityId
     containerRegistryName: containerRegistryName
+    storageAccountName: storageAccountName
     containerName: containerName
     imageName: !empty(imageName) ? imageName : exists ? existingApp.properties.template.containers[0].image : 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
     external: external
@@ -53,6 +56,7 @@ module containerApp './containers/container-app.bicep' = {
     customDomainName: customDomainName
     certificateId: certificateId
     env: env
+    proxyEnv: proxyEnv
     targetPort: targetPort
   }
 }

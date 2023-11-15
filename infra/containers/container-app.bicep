@@ -5,7 +5,6 @@ param containerAppEnvironmentName string
 param userAssignedIdentityId string
 param containerRegistryName string
 param storageAccountName string
-param fileShareName string
 
 param allowedOrigins array = []
 param certificateId string = ''

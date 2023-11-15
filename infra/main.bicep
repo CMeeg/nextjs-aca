@@ -175,7 +175,6 @@ module webAppServiceContainerApp './web-app.bicep' = {
     userAssignedIdentityId: webAppServiceIdentity.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     storageAccountName: storageAccount.outputs.name
-    fileShareName: buildServiceResourceName(abbrs.storage.file_share, projectName, webAppServiceName, environmentName, resourceToken, true)
     containerCpuCoreCount: stringOrDefault(envVars.SERVICE_WEB_CONTAINER_CPU_CORE_COUNT, '0.5')
     containerMemory: stringOrDefault(envVars.SERVICE_WEB_CONTAINER_MEMORY, '1.0Gi')
     containerMinReplicas: intOrDefault(envVars.SERVICE_WEB_CONTAINER_MIN_REPLICAS, 0)
