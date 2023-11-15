@@ -6,6 +6,7 @@ const buildId = process.env.NEXT_PUBLIC_BUILD_ID || null
 const customDomainName = process.env.SERVICE_WEB_CUSTOM_DOMAIN_NAME || ''
 
 const remotePatterns = []
+const headers = []
 const rewrites = {}
 const redirects = []
 
@@ -25,6 +26,17 @@ if (buildId) {
       destination: '/:path*'
     }
   ]
+
+  // Also add a cache control header as these resources are immutable for each build
+  headers.push({
+    source: `/${buildId}/:path*`,
+    headers: [
+      {
+        key: 'Cache-Control',
+        value: 'public, max-age=31536000, immutable'
+      }
+    ]
+  })
 }
 
 if (customDomainName) {
@@ -61,6 +73,9 @@ const nextConfig = {
   },
   images: {
     remotePatterns
+  },
+  async headers() {
+    return headers
   },
   async rewrites() {
     return rewrites
