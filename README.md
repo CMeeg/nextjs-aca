@@ -1,8 +1,8 @@
 # nextjs-aca
 
-An `azd` ([Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview)) template for getting a [Next.js](https://nextjs.org/) 13 app running on Azure Container Apps with CDN and Application Insights.
+An `azd` ([Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview)) template for getting a [Next.js](https://nextjs.org/) app running on Azure Container Apps with CDN and Application Insights.
 
-The Next.js 13 app included with the template has been generated with [`create-next-app`](https://nextjs.org/docs/getting-started/installation#automatic-installation) and has some additional code and components specific to this template that provide:
+The Next.js app included with the template has been generated with [`create-next-app`](https://nextjs.org/docs/getting-started/installation#automatic-installation) and has some additional code and components specific to this template that provide:
 
 * [Server-side and client-side instrumentation and logging via App Insights](#application-insights)
 * [Serving of Next.js static assets through an Azure CDN (with cache busting)](#azure-cdn)
@@ -39,7 +39,7 @@ azd deploy
 
 > The output from the `azd deploy` command includes a link to the Resource Group in your Azure Subscription where you can see the provisioned infrastructure resources. A link to the Next.js app running in Azure is also included so you can quickly navigate to your Next.js app that is now hosted in Azure.
 
-🚀 You now have a Next.js 13 app running in Container Apps in Azure with a CDN for fast delivery of static files and Application Insights attached for monitoring!
+🚀 You now have a Next.js app running in Container Apps in Azure with a CDN for fast delivery of static files and Application Insights attached for monitoring!
 
 💥 When you're done testing you can run `azd down` in the terminal and that will delete the Resource Group and all of the resources in it.
 
@@ -47,8 +47,8 @@ azd deploy
 
 If you do not have access to or do not want to work in Codespaces or a Dev Container you can of course work locally, but you will need to ensure you have the following pre-requisites installed:
 
-* [Node.js](https://nodejs.org/) v18.x
-  * Later versions should be fine also, but v18.x is the target version set in the template
+* [Node.js](https://nodejs.org/) v18.17 or later
+  * This Node.js version is a [minimum requirement of Next.js](https://nextjs.org/docs/getting-started/installation)
   * Use of [`nvm`](https://github.com/nvm-sh/nvm) or [`fnm`](https://github.com/Schniz/fnm) is recommended
 * [PowerShell](https://github.com/PowerShell/PowerShell)
 * [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd)
@@ -66,7 +66,7 @@ If you do not have access to or do not want to work in Codespaces or a Dev Conta
 
 You should develop your Next.js app as [you normally would](https://nextjs.org/docs/app/building-your-application) with a couple of (hopefully minor) concessions:
 
-* As and when environment variables need to be added to a `.env.local` file that the the `.env.local.template` file is updated to include a matching empty or example entry
+* As and when environment variables need to be added to a `.env.local` file that the the `.env.local.template` file is updated to include a matching entry with an empty or default value
   * This is so that the `azd provision` and `azd deploy` hooks have context of all of the environment variables required by your app at build and at runtime
   * See the [Environment variables](#environment-variables) section for a fuller description of why this is needed
 * To get the most out of the CDN and App Insights resources used by this template you should keep (or copy across) the relevant code and configuration assets related to these resources
@@ -106,7 +106,7 @@ Then when you're finished with the deployment run:
 azd down
 ```
 
-> `azd` has an `azd up` command, which the [docs describe as](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/make-azd-compatible?pivots=azd-create#update-azureyaml) *"You can run `azd up` to perform both `azd provision` and `azd deploy` in a single step"*. Running `azd up` actually seems to be the equivalent of `azd package` -> `azd provision` -> `azd deploy` though, which does not work for this template because outputs from the `azd provision` step such as the app's URL and the CDN endpoint URL are required by `next build`, which is run inside the `Dockerfile` during `azd package`. So unless the behaviour of `azd up` can be changed in future you will need to continue to run `azd provision` -> `azd deploy`.
+> `azd` has an `azd up` command, which the [docs describe as](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/make-azd-compatible?pivots=azd-create#update-azureyaml) *"You can run `azd up` to perform both `azd provision` and `azd deploy` in a single step"*. Running `azd up` is actually the equivalent of `azd package` -> `azd provision` -> `azd deploy` though, which does not work for this template because outputs from the `azd provision` step such as the app's URL and the CDN endpoint URL are required by `next build`, which is run inside the `Dockerfile` during `azd package`. So unless the behaviour of `azd up` can be changed in future you will need to continue to run `azd provision` -> `azd deploy`.
 
 ## Deploying to Azure with `azd` in a CI/CD pipeline
 
@@ -145,23 +145,29 @@ Client-side logging can be performed by using the `useAppInsightsContext` hook f
 
 ## Azure CDN
 
-An [Azure CDN endpoint](https://learn.microsoft.com/en-us/azure/cdn/cdn-create-endpoint-how-to) is used to serve Next.js's static assets via the [`assetPrefix`](https://nextjs.org/docs/app/api-reference/next-config-js/assetPrefix) configuration option.
+An [Azure CDN endpoint](https://learn.microsoft.com/en-us/azure/cdn/cdn-create-endpoint-how-to) is deployed and configured to work in "origin pull" mode, which means the first request made for a resource to the CDN will proxy through to the Container App (the origin) and the response will be cached on the CDN for subsequent requests.
 
-The static assets from the Next.js build output and [`public` folder](https://nextjs.org/docs/getting-started/installation#the-public-folder-optional) are included in the Docker image that is created during the `azd deploy` step and deployed to your Container App.
+For this to work the static assets from the Next.js build output and [`public` folder](https://nextjs.org/docs/getting-started/installation#the-public-folder-optional) are included in the Docker image that is created during the `azd deploy` step and deployed to your Container App.
 
-The CDN endpoint is configured to work in "origin pull" mode, meaning the first request made to the CDN for a static asset will proxy through to the Container App, but the response will be cached on the CDN for subsequent requests.
+To configure the CDN to be used for requests to Next.js's static assets the [`assetPrefix`](https://nextjs.org/docs/app/api-reference/next-config-js/assetPrefix) configuration option is set in `next.config.js`.
 
-💡 The template will also by default set Next.js's [`compress`](https://nextjs.org/docs/app/api-reference/next-config-js/compress) configuration option to `false` because the CDN will provide compression; and the [`remotePatterns`](https://nextjs.org/docs/app/api-reference/components/image#remotepatterns) configuration option is used to allow CDN URLs to be used by the Next.js's `<Image>` component.
+To use the CDN for requests to other resources (such as those in the `public` folder) you can `import { getCdnUrl } from '@/lib/url'` and use the `getCdnUrl` function to generate a URL that will proxy the request through the CDN.
 
-The template also includes a function that allows you to generate a CDN URL from a relative path if you want to direct certain requests through the CDN, for example images in the `public` folder. To use the function you can `import { getCdnUrl } from '@/lib/url'`.
+The template also includes a function that allows you to generate an absolute URL from a relative path if you require it (i.e. direct to the origin without proxying through the CDN). To use the function you can `import { getAbsoluteUrl } from '@/lib/url'`.
 
-💡 The `getCdnUrl` function uses a [`buildId`](https://nextjs.org/docs/app/api-reference/next-config-js/generateBuildId) when constructing the URL so that the URLs will change when you deploy a new version of your app, which is provided as a "cache busting" strategy.
+> For an example of how `getCdnUrl` can be used see `page.tsx`. An example of `getAbsoluteUrl` can be seen in `robots.ts`.
 
-The template also includes a function that allows you to generate an absolute URL from a relative path if you require it. To use the function you can `import { getAbsoluteUrl } from '@/lib/url'`.
+As well as `assetPrefix` there are some other related configuration options set in `next.config.js`:
+
+* The [`compress`](https://nextjs.org/docs/app/api-reference/next-config-js/compress) option is set to `true` by default because although the CDN will provide compression for static assets pulled from the origin the CDN doesn't cover dynamic assets
+* The [`remotePatterns`](https://nextjs.org/docs/app/api-reference/components/image#remotepatterns) option is set to allow CDN URLs to be used by the Next.js's `<Image>` component
+* A far-future `Cache-Control` header is set via the [`headers`](https://nextjs.org/docs/app/api-reference/next-config-js/headers) option for requests that include the `buildId` in the URL (the `getCdnUrl` function adds this by default as a cache-busting strategy)
+
+💡 The template also adds a [`preconnect`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel/preconnect) for the CDN in `layout.tsx`.
 
 > The features described above require the presence of the environment variables `NEXT_PUBLIC_CDN_URL`, `NEXT_PUBLIC_CDN_HOSTNAME`, `NEXT_COMPRESS`, `NEXT_PUBLIC_BUILD_ID` and `NEXT_PUBLIC_BASE_URL`. These are all provided to the app automatically with the exception of `NEXT_COMPRESS`, which is provided by `.env.production`.
 >
-> If these environment variables are not provided, for example when running in your development environment outside of `azd provision`, the `assetPrefix`, `remotePatterns` and `buildId` will not be set, and the `getCdnUrl` function will return the relative path that was provided as input.
+> If these environment variables are not provided, for example when running in your development environment outside of `azd provision`, the `assetPrefix`, `remotePatterns` and `headers` will not be set, the `getCdnUrl` and `getAbsoluteUrl` functions will return the relative path that was provided as input to the function, and the `preconnect` will not be added.
 
 ## Checking the current environment at runtime
 

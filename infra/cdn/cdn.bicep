@@ -3,6 +3,7 @@ param endpointName string
 param location string = resourceGroup().location
 param tags object = {}
 param originHostName string
+param buildId string
 
 var originUri = 'https://${originHostName}'
 
@@ -57,15 +58,15 @@ resource endpoint 'Microsoft.Cdn/profiles/endpoints@2022-11-01-preview' = {
             {
               name: 'RequestHeader'
               parameters: {
-                  operator: length(originUri) > 64 ? 'BeginsWith' : 'Equal'
-                  selector: 'Origin'
-                  negateCondition: false
-                  // A match value longer than 64 characters will cause an error
-                  matchValues: [
-                    length(originUri) > 64 ? take(originUri, 64) : originUri
-                  ]
-                  transforms: []
-                  typeName: 'DeliveryRuleRequestHeaderConditionParameters'
+                operator: length(originUri) > 64 ? 'BeginsWith' : 'Equal'
+                selector: 'Origin'
+                negateCondition: false
+                // A match value longer than 64 characters will cause an error
+                matchValues: [
+                  length(originUri) > 64 ? take(originUri, 64) : originUri
+                ]
+                transforms: []
+                typeName: 'DeliveryRuleRequestHeaderConditionParameters'
               }
             }
           ]
@@ -73,10 +74,10 @@ resource endpoint 'Microsoft.Cdn/profiles/endpoints@2022-11-01-preview' = {
             {
               name: 'ModifyResponseHeader'
               parameters: {
-                  headerAction: 'Overwrite'
-                  headerName: 'Access-Control-Allow-Origin'
-                  value: originUri
-                  typeName: 'DeliveryRuleHeaderActionParameters'
+                headerAction: 'Overwrite'
+                headerName: 'Access-Control-Allow-Origin'
+                value: originUri
+                typeName: 'DeliveryRuleHeaderActionParameters'
               }
             }
           ]
@@ -88,13 +89,13 @@ resource endpoint 'Microsoft.Cdn/profiles/endpoints@2022-11-01-preview' = {
             {
               name: 'UrlPath'
               parameters: {
-                  operator: 'BeginsWith'
-                  negateCondition: false
-                  matchValues: [
-                    '_next/'
-                  ]
-                  transforms: []
-                  typeName: 'DeliveryRuleUrlPathMatchConditionParameters'
+                operator: 'BeginsWith'
+                negateCondition: false
+                matchValues: [
+                  '_next/'
+                ]
+                transforms: []
+                typeName: 'DeliveryRuleUrlPathMatchConditionParameters'
               }
             }
           ]
@@ -102,10 +103,40 @@ resource endpoint 'Microsoft.Cdn/profiles/endpoints@2022-11-01-preview' = {
             {
               name: 'ModifyResponseHeader'
               parameters: {
-                  headerAction: 'Overwrite'
-                  headerName: 'Access-Control-Allow-Origin'
-                  value: originUri
-                  typeName: 'DeliveryRuleHeaderActionParameters'
+                headerAction: 'Overwrite'
+                headerName: 'Access-Control-Allow-Origin'
+                value: originUri
+                typeName: 'DeliveryRuleHeaderActionParameters'
+              }
+            }
+          ]
+        }
+        {
+          name: 'NoCompressAtOrigin'
+          order: 3
+          conditions: [
+            {
+              name: 'UrlPath'
+              parameters: {
+                operator: 'BeginsWith'
+                negateCondition: false
+                matchValues: [
+                  '_next/'
+                  '${buildId}/'
+                ]
+                transforms: []
+                typeName: 'DeliveryRuleUrlPathMatchConditionParameters'
+              }
+            }
+          ]
+          actions: [
+            {
+              name: 'ModifyRequestHeader'
+              parameters: {
+                headerAction: 'Delete'
+                headerName: 'Accept-Encoding'
+                value: null
+                typeName: 'DeliveryRuleHeaderActionParameters'
               }
             }
           ]

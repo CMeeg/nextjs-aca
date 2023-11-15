@@ -1,6 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { PreloadResources } from './preload-resources'
 import { AppInsightsProvider } from '@/components/instrumentation/AppInsightsProvider'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -17,6 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <PreloadResources />
       <body className={inter.className}>
         <AppInsightsProvider>{children}</AppInsightsProvider>
       </body>
